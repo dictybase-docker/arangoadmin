@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -95,4 +97,5 @@ func main() {
 			},
 		},
 	}
+	app.Run(os.Args)
 }
