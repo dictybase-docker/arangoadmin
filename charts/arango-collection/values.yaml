@@ -1,0 +1,20 @@
+# Default values for arango-admin.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: dictybase/arangomanager
+  tag: 0.0.1
+  pullPolicy: IfNotPresent
+
+# #
+# Set the following from the command line or through a yaml file
+# database:
+#  name:
+#  user:
+#  password:
+
+collection:
+#  name:
+  isEdge: false
+

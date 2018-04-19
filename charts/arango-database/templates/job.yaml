@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "arango-database.fullname" . }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  template:
+    metadata:
+      name: {{ template "arango-database.fullname" . }}
+      labels:
+        app: {{ template "arango-database.fullname" . }}
+    spec:
+      containers:
+      - name: {{ template "arango-database.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        args: [
+          "--log-level",
+          "info",
+          "create-db-user",
+          "--admin-user",
+          "{{ .Values.admin.user }}",
+          "--admin-password",
+          "{{ .Values.admin.password }}",
+          "--database",
+        {{- if .Values.database }}
+          "{{ .Values.database.name }}",
+          "--user",
+          "{{ .Values.database.user }}",
+          "--password",
+          "{{ .Values.database.password}}",
+          "--grant",
+          "{{ .Values.database.grant }}"
+        {{- end -}}
+        ]
+      restartPolicy: Never
