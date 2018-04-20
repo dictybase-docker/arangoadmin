@@ -13,7 +13,7 @@ func getClient(host, port, user, pass string) (driver.Client, error) {
 	conn, err := vst.NewConnection(
 		vst.ConnectionConfig{
 			Endpoints: []string{
-				fmt.Sprintf("vst://%s:%d", host, port),
+				fmt.Sprintf("vst://%s:%s", host, port),
 			},
 		})
 	if err != nil {
