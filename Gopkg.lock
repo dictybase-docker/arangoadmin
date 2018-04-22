@@ -7,9 +7,8 @@
   packages = [
     ".",
     "cluster",
-    "util",
-    "vst",
-    "vst/protocol"
+    "http",
+    "util"
   ]
   revision = "bd4929ecc5e55c69c69ccf4b7af599b888cec6a4"
 
@@ -34,6 +33,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "019f2fe763af263158179b74fe09beefb098f5f0f3a271581c2d2a84c00aff51"
+  inputs-digest = "3b712b2013f0fa4a9866336195fccfe257e1c9a648309ca259f088574576bc76"
   solver-name = "gps-cdcl"
   solver-version = 1

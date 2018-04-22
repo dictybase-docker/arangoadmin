@@ -11,6 +11,7 @@ import (
 )
 
 func createDatabase(c *cli.Context) error {
+	logger := getLogger(c)
 	client, err := getClient(
 		c.GlobalString("host"),
 		c.GlobalString("port"),
@@ -18,8 +19,16 @@ func createDatabase(c *cli.Context) error {
 		c.String("admin-password"),
 	)
 	if err != nil {
-		return err
+		return cli.NewExitError(err.Error(), 2)
 	}
+	v, err := client.Version(context.Background())
+	if err != nil {
+		return cli.NewExitError(
+			fmt.Sprintf("unable to get version %s", err),
+			2,
+		)
+	}
+	logger.Infof("Got version %s", v.Version)
 	var db driver.Database
 	ok, err := client.DatabaseExists(context.Background(), c.String("database"))
 	if err != nil {
@@ -28,16 +37,15 @@ func createDatabase(c *cli.Context) error {
 			2,
 		)
 	}
-	logger := getLogger(c)
 	if ok {
 		db, err = client.Database(context.Background(), c.String("database"))
-		logger.Infof("database %s exists", c.String("database"))
 		if err != nil {
 			return cli.NewExitError(
 				fmt.Sprintf("error in retrieving database %s %s", c.String("database"), err),
 				2,
 			)
 		}
+		logger.Infof("database %s exists", c.String("database"))
 	} else {
 		db, err = client.CreateDatabase(context.Background(), c.String("database"), nil)
 		if err != nil {
@@ -57,6 +65,13 @@ func createDatabase(c *cli.Context) error {
 		)
 	}
 	if ok {
+		u, err = client.User(context.Background(), c.String("user"))
+		if err != nil {
+			return cli.NewExitError(
+				fmt.Sprintf("cannot retrieve the user %s %s", c.String("user"), err),
+				2,
+			)
+		}
 		logger.Infof("user %s exists nothing to create", c.String("user"))
 	} else {
 		u, err = client.CreateUser(
@@ -82,6 +97,7 @@ func createDatabase(c *cli.Context) error {
 }
 
 func createCollection(c *cli.Context) error {
+	logger := getLogger(c)
 	client, err := getClient(
 		c.GlobalString("host"),
 		c.GlobalString("port"),
@@ -89,8 +105,16 @@ func createCollection(c *cli.Context) error {
 		c.String("password"),
 	)
 	if err != nil {
-		return err
+		return cli.NewExitError(err.Error(), 2)
 	}
+	v, err := client.Version(context.Background())
+	if err != nil {
+		return cli.NewExitError(
+			fmt.Sprintf("unable to get version %s", err),
+			2,
+		)
+	}
+	logger.Infof("Got version %s", v.Version)
 	var db driver.Database
 	ok, err := client.DatabaseExists(context.Background(), c.String("database"))
 	if err != nil {
@@ -99,7 +123,6 @@ func createCollection(c *cli.Context) error {
 			2,
 		)
 	}
-	logger := getLogger(c)
 	if !ok {
 		logger.Errorf("database %s does not exists", c.String("database"))
 		return cli.NewExitError(
