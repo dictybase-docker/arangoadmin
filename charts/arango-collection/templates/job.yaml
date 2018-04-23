@@ -23,12 +23,12 @@ spec:
           "create-collection",
           "--database",
         {{- if .Values.database }}
-          "{{ .Values.database.name }}"
+          "{{ .Values.database.name }}",
           "--user",
           "{{ .Values.database.user }}",
           "--password",
           "{{ .Values.database.password}}",
-        {{- end -}}
+        {{- end }}
           "--collection",
           "{{ .Values.collection.name }}",
           "--is-edge",
