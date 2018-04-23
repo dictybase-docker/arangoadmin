@@ -25,8 +25,8 @@ spec:
           "{{ .Values.admin.user }}",
           "--admin-password",
           "{{ .Values.admin.password }}",
-          "--database",
         {{- if .Values.database }}
+          "--database",
           "{{ .Values.database.name }}",
           "--user",
           "{{ .Values.database.user }}",
@@ -34,6 +34,6 @@ spec:
           "{{ .Values.database.password}}",
           "--grant",
           "{{ .Values.database.grant }}"
-        {{- end -}}
+        {{- end }}
         ]
       restartPolicy: Never
