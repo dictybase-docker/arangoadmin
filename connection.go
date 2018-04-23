@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"time"
 
 	"github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
@@ -20,10 +21,12 @@ func getClient(host, port, user, pass string) (driver.Client, error) {
 	if err != nil {
 		return c, fmt.Errorf("could not connect %s", err)
 	}
+	d, _ := time.ParseDuration("1s")
 	client, err := driver.NewClient(
 		driver.ClientConfig{
-			Connection:     conn,
-			Authentication: driver.BasicAuthentication(user, pass),
+			Connection:                   conn,
+			Authentication:               driver.BasicAuthentication(user, pass),
+			SynchronizeEndpointsInterval: d,
 		})
 	if err != nil {
 		return c, fmt.Errorf("could not get a client instance %s", err)
