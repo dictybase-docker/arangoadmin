@@ -17,6 +17,7 @@ func createDatabase(c *cli.Context) error {
 		c.GlobalString("port"),
 		c.String("admin-user"),
 		c.String("admin-password"),
+		true,
 	)
 	if err != nil {
 		return cli.NewExitError(err.Error(), 2)
@@ -103,18 +104,11 @@ func createCollection(c *cli.Context) error {
 		c.GlobalString("port"),
 		c.String("user"),
 		c.String("password"),
+		false,
 	)
 	if err != nil {
 		return cli.NewExitError(err.Error(), 2)
 	}
-	v, err := client.Version(context.Background())
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("unable to get version %s", err),
-			2,
-		)
-	}
-	logger.Infof("Got version %s", v.Version)
 	var db driver.Database
 	ok, err := client.DatabaseExists(context.Background(), c.String("database"))
 	if err != nil {
