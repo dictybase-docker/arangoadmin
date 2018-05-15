@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/arangodb/go-driver"
 	"github.com/sirupsen/logrus"
+	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/yaml.v2"
 )
 
-func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry) error {
+func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry, c *cli.Context) error {
 	var adb driver.Database
 	switch db.Action {
 	case "create":
@@ -46,7 +49,22 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry)
 	default:
 		return fmt.Errorf("unsupported database action %s", db.Action)
 	}
-	for _, u := range db.Allowed {
+	if len(db.Allowed) == 0 {
+		return nil
+	}
+	if !c.IsSet("password-file") {
+		return fmt.Errorf("%s\n", "**password-file** is needed for creating user")
+	}
+	cont, err := ioutil.ReadFile(c.String("password-file"))
+	if err != nil {
+		return fmt.Errorf("cannot read password file %s", err)
+	}
+	pw := new(PwList)
+	err = yaml.Unmarshal(cont, pw)
+	if err != nil {
+		return fmt.Errorf("cannot unmarshal yaml for password file %s", err)
+	}
+	for i, u := range db.Allowed {
 		ok, err := client.UserExists(context.Background(), u.User)
 		if err != nil {
 			return fmt.Errorf("error in checking for user %s %s", u.User, err)
@@ -59,7 +77,7 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry)
 			context.Background(),
 			u.User,
 			&driver.UserOptions{
-				Password: u.Pass,
+				Password: pw.Passwords[i],
 			})
 		if err != nil {
 			return fmt.Errorf("error in creating user %s %s", u.User, err)

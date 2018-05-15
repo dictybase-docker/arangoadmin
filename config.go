@@ -48,3 +48,7 @@ type Collection struct {
 	Key       KeyOptions `yaml:"key,omitempty"`
 	Database  string     `yaml:"database"`
 }
+
+type PwList struct {
+	Passwords []string `yaml:"passwords"`
+}

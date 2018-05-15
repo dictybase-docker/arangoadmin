@@ -120,7 +120,7 @@ func Run(c *cli.Context) error {
 				)
 			}
 			logger.Debug("going to process type database")
-			if err := runDatabaseAction(client, db, logger); err != nil {
+			if err := runDatabaseAction(client, db, logger, c); err != nil {
 				return cli.NewExitError(err.Error(), 2)
 			}
 			logger.Debug("processed type database")

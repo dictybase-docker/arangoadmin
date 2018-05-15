@@ -6,6 +6,10 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+var pwHelp = `yaml file with list of passwords, only needed if a user is created.
+             through the yaml file. It is applied in the same order the users are
+			 specified.`
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "arangomanager"
@@ -52,6 +56,10 @@ func main() {
 				cli.BoolFlag{
 					Name:  "is-secure",
 					Usage: "connect through a secure endpoint",
+				},
+				cli.StringFlag{
+					Name:  "password-file,pwfile",
+					Usage: pwHelp,
 				},
 				cli.StringFlag{
 					Name:  "dir",
