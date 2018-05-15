@@ -3,21 +3,65 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
 
-	"github.com/arangodb/go-driver"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/urfave/cli.v1"
+	"gopkg.in/yaml.v2"
 )
 
-func createDatabase(c *cli.Context) error {
+var collection = regexp.MustCompile(`^type:\scollection`)
+var edgeCollection = regexp.MustCompile(`^type:\sedgeCollection`)
+var database = regexp.MustCompile(`^type:\sdatabase`)
+
+type ByNumFileName []os.FileInfo
+
+func (nf ByNumFileName) Len() int {
+	return len(nf)
+}
+func (nf ByNumFileName) Swap(i, j int) {
+	nf[i], nf[j] = nf[j], nf[i]
+}
+func (nf ByNumFileName) Less(i, j int) bool {
+	//Grab integer value
+	fileA := nf[i].Name()
+	fileB := nf[j].Name()
+
+	a, errA := strconv.ParseInt(strings.Split(fileA, "_")[0], 10, 64)
+	b, errB := strconv.ParseInt(strings.Split(fileB, "_")[0], 10, 64)
+	if errA != nil || errB != nil {
+		return fileA < fileB
+	}
+	return a < b
+}
+
+func Run(c *cli.Context) error {
+	var dir string
+	if !c.IsSet("dir") {
+		d, err := os.Getwd()
+		if err != nil {
+			return cli.NewExitError(
+				fmt.Sprintf("could not get current working dir %s", err),
+				2,
+			)
+		}
+		dir = d
+	} else {
+		dir = c.String("dir")
+	}
 	logger := getLogger(c)
 	client, err := getClient(
 		c.GlobalString("host"),
 		c.GlobalString("port"),
 		c.String("admin-user"),
 		c.String("admin-password"),
-		true,
+		c.Bool("is-secure"),
 	)
 	if err != nil {
 		return cli.NewExitError(err.Error(), 2)
@@ -30,139 +74,89 @@ func createDatabase(c *cli.Context) error {
 		)
 	}
 	logger.Infof("Got version %s", v.Version)
-	var db driver.Database
-	ok, err := client.DatabaseExists(context.Background(), c.String("database"))
+	// read the input dir
+	f, err := os.Open(dir)
 	if err != nil {
 		return cli.NewExitError(
-			fmt.Sprintf("error in checking for database %s %s", c.String("database"), err),
+			fmt.Sprintf("error in reading directory %s %s", dir, err),
 			2,
 		)
 	}
-	if ok {
-		db, err = client.Database(context.Background(), c.String("database"))
-		if err != nil {
-			return cli.NewExitError(
-				fmt.Sprintf("error in retrieving database %s %s", c.String("database"), err),
-				2,
-			)
-		}
-		logger.Infof("database %s exists", c.String("database"))
-	} else {
-		db, err = client.CreateDatabase(context.Background(), c.String("database"), nil)
-		if err != nil {
-			return cli.NewExitError(
-				fmt.Sprintf("error in creating database %s %s", c.String("database"), err),
-				2,
-			)
-		}
-		logger.Infof("successfully created database %s", c.String("database"))
-	}
-	var u driver.User
-	ok, err = client.UserExists(context.Background(), c.String("user"))
+	allInfo, err := f.Readdir(-1)
+	sort.Sort(ByNumFileName(allInfo))
 	if err != nil {
 		return cli.NewExitError(
-			fmt.Sprintf("error in checking for user %s %s", c.String("user"), err),
+			fmt.Sprintf("unable to read content from the directory %s", err),
 			2,
 		)
 	}
-	if ok {
-		u, err = client.User(context.Background(), c.String("user"))
+	// go through all yaml files
+	for _, finfo := range allInfo {
+		fullPath := filepath.Join(dir, finfo.Name())
+		if finfo.IsDir() {
+			logger.Debugf("skipped dir %s", fullPath)
+			continue
+		}
+		if !strings.HasSuffix(finfo.Name(), "yaml") {
+			logger.Debugf("skipped non yaml file %s", fullPath)
+			continue
+		}
+		cont, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return cli.NewExitError(
-				fmt.Sprintf("cannot retrieve the user %s %s", c.String("user"), err),
+				fmt.Sprintf("unable to read file %s %s", fullPath, err),
 				2,
 			)
 		}
-		logger.Infof("user %s exists nothing to create", c.String("user"))
-	} else {
-		u, err = client.CreateUser(
-			context.Background(),
-			c.String("user"),
-			&driver.UserOptions{
-				Password: c.String("password"),
-			})
-		logger.Infof("successfully created user %s", c.String("user"))
+		logger.Debugf("going to process file %s", fullPath)
+		switch {
+		case database.Match(cont):
+			db := new(Database)
+			err := yaml.UnmarshalStrict(cont, db)
+			if err != nil {
+				return cli.NewExitError(
+					fmt.Sprintf("error in unmarshalling yaml %s", err.Error()),
+					2,
+				)
+			}
+			logger.Debug("going to process type database")
+			if err := runDatabaseAction(client, db, logger); err != nil {
+				return cli.NewExitError(err.Error(), 2)
+			}
+			logger.Debug("processed type database")
+		case collection.Match(cont):
+			coll := new(Collection)
+			err := yaml.UnmarshalStrict(cont, coll)
+			if err != nil {
+				return cli.NewExitError(
+					fmt.Sprintf("error in unmarshalling yaml %s", err.Error()),
+					2,
+				)
+			}
+			logger.Debug("going to process type collection")
+			if err := runCollectionAction(client, coll, false, logger); err != nil {
+				return cli.NewExitError(err.Error(), 2)
+			}
+			logger.Debug("processed type collection")
+		case edgeCollection.Match(cont):
+			coll := new(Collection)
+			err := yaml.UnmarshalStrict(cont, coll)
+			if err != nil {
+				return cli.NewExitError(
+					fmt.Sprintf("error in unmarshalling yaml %s", err.Error()),
+					2,
+				)
+			}
+			logger.Debug("going to process type edgeCollection")
+			if err := runCollectionAction(client, coll, true, logger); err != nil {
+				return cli.NewExitError(err.Error(), 2)
+			}
+		default:
+			return cli.NewExitError("yaml type is not supported", 2)
+		}
+		logger.Infof("processed file %s", fullPath)
 	}
-	err = u.SetDatabaseAccess(context.Background(), db, getGrant(c.String("grant")))
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf(
-				"error in granting permission %s for user %s %s",
-				c.String("grant"),
-				c.String("user"),
-				err,
-			), 2)
-	}
-	logger.Infof("successfully granted permission to user %s", c.String("user"))
 	return nil
-}
-
-func createCollection(c *cli.Context) error {
-	logger := getLogger(c)
-	client, err := getClient(
-		c.GlobalString("host"),
-		c.GlobalString("port"),
-		c.String("user"),
-		c.String("password"),
-		false,
-	)
-	if err != nil {
-		return cli.NewExitError(err.Error(), 2)
-	}
-	var db driver.Database
-	ok, err := client.DatabaseExists(context.Background(), c.String("database"))
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("error in checking for database %s %s", c.String("database"), err),
-			2,
-		)
-	}
-	if !ok {
-		logger.Errorf("database %s does not exists", c.String("database"))
-		return cli.NewExitError(
-			fmt.Sprintf("database %s does not exist, cannot create collection", c.String("database")),
-			2,
-		)
-	}
-	db, err = client.Database(context.Background(), c.String("database"))
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("error in retrieving database %s %s", c.String("database"), err),
-			2,
-		)
-	}
-	coll := c.String("collection")
-	ok, err = db.CollectionExists(context.Background(), coll)
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("error in collection lookup %s", err), 2)
-	}
-	if ok {
-		logger.Infof("collection %s exist, nothing to create", coll)
-		return nil
-	}
-	opt := &driver.CreateCollectionOptions{}
-	if c.Bool("is-edge") {
-		opt.Type = driver.CollectionTypeEdge
-	}
-	_, err = db.CreateCollection(context.Background(), coll, opt)
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("error in creating collection %s", err), 2)
-	}
-	logger.Infof("successfully created collection %s", coll)
-	return nil
-}
-
-func getGrant(g string) driver.Grant {
-	var grnt driver.Grant
-	switch g {
-	case "rw":
-		grnt = driver.GrantReadWrite
-	case "ro":
-		grnt = driver.GrantReadOnly
-	default:
-		grnt = driver.GrantNone
-	}
-	return grnt
 }
 
 func getLogger(c *cli.Context) *logrus.Entry {
