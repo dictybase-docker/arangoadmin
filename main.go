@@ -55,6 +55,10 @@ func main() {
 					Usage: "connect through a secure endpoint",
 					Value: true,
 				},
+				cli.StringFlag{
+					Name:  "dir",
+					Usage: "directory with yaml files to run, current directory(.) is picked up by default",
+				},
 			},
 		},
 	}
