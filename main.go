@@ -38,7 +38,6 @@ func main() {
 			Name:   "run",
 			Usage:  "run the action defined in the yaml file",
 			Action: Run,
-			Before: validateRun,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "admin-user,au",
@@ -53,7 +52,6 @@ func main() {
 				cli.BoolFlag{
 					Name:  "is-secure",
 					Usage: "connect through a secure endpoint",
-					Value: true,
 				},
 				cli.StringFlag{
 					Name:  "dir",
