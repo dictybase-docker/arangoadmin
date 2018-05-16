@@ -21,13 +21,13 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry,
 		}
 		if ok {
 			logger.Infof("database %s exists, nothing to create", db.Name)
-			return nil
+		} else {
+			adb, err = client.CreateDatabase(context.Background(), db.Name, nil)
+			if err != nil {
+				return fmt.Errorf("error in creating database %s %s", db.Name, err)
+			}
+			logger.Infof("created database %s", db.Name)
 		}
-		adb, err = client.CreateDatabase(context.Background(), db.Name, nil)
-		if err != nil {
-			return fmt.Errorf("error in creating database %s %s", db.Name, err)
-		}
-		logger.Infof("created database %s", db.Name)
 	case "delete":
 		ok, err := client.DatabaseExists(context.Background(), db.Name)
 		if err != nil {
