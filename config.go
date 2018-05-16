@@ -9,7 +9,6 @@ type KeyOptions struct {
 // User the data used to update a user account
 type User struct {
 	User  string `yaml:"user"`
-	Pass  string `yaml:"password"`
 	Grant string `yaml:"grant"`
 }
 
