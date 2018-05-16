@@ -49,7 +49,33 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry,
 	default:
 		return fmt.Errorf("unsupported database action %s", db.Action)
 	}
-	if len(db.Allowed) == 0 {
+	var cusers []User
+	for _, u := range db.Allowed {
+		ok, err := client.UserExists(context.Background(), u.User)
+		if err != nil {
+			return fmt.Errorf("error in checking for user %s %s", u.User, err)
+		}
+		if !ok {
+			cusers = append(cusers, u)
+			continue
+		}
+		logger.Infof("user %s exists, skipping", u.User)
+		euser, err := client.User(context.Background(), u.User)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve user %s", err)
+		}
+		err = euser.SetDatabaseAccess(context.Background(), adb, getGrant(u.Grant))
+		if err != nil {
+			return fmt.Errorf(
+				"error in granting permission %s for user %s %s",
+				u.Grant,
+				u.User,
+				err,
+			)
+		}
+		logger.Infof("successfully granted permission %s to existing user %s", u.Grant, u.User)
+	}
+	if len(cusers) == 0 {
 		return nil
 	}
 	if !c.IsSet("password-file") {
@@ -64,15 +90,7 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry,
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal yaml for password file %s", err)
 	}
-	for i, u := range db.Allowed {
-		ok, err := client.UserExists(context.Background(), u.User)
-		if err != nil {
-			return fmt.Errorf("error in checking for user %s %s", u.User, err)
-		}
-		if ok {
-			logger.Infof("user %s exists, skipping", u.User)
-			continue
-		}
+	for i, u := range cusers {
 		dbUser, err := client.CreateUser(
 			context.Background(),
 			u.User,
@@ -92,7 +110,7 @@ func runDatabaseAction(client driver.Client, db *Database, logger *logrus.Entry,
 				err,
 			)
 		}
-		logger.Infof("successfully granted permission %s to user %s", u.Grant, u.User)
+		logger.Infof("successfully granted permission %s existing user %s", u.Grant, u.User)
 	}
 	return nil
 }
