@@ -1,58 +1,60 @@
-# arangomanager
+# arangoadmin
 
 ## Command line
+
 ```
 NAME:
-   arangomanager - cli for managing databases, users and collection in arangodb
+   arangoadmin - cli for creating databases and users in arangodb
 
 USAGE:
-   arangomanager [global options] command [command options] [arguments...]
+   arangoadmin [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.0
+   1.0.0
 
 COMMANDS:
-     create-db-user     create database, users and database level access
-     create-collection  create collections in a database
-     help, h            Shows a list of commands or help for one command
+     create-database  create a new arangodb database
+     create-user      create a new user for accessing arangodb
+     help, h          Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --host value        arangodb host address (default: "arangodb") [$ARANGODB_SERVICE_HOST]
-   --port value        arangodb port [$ARANGODB_SERVICE_PORT]
+   --port value        arangodb port (default: "8529") [$ARANGODB_SERVICE_PORT]
    --log-level value   log level for the application (default: "info")
    --log-format value  format of the logging out, either of json or text (default: "json")
+   --is-secure         connect through a secure endpoint
    --help, -h          show help
    --version, -v       print the version
 ```
 
 ### Subcommands
+
 ```
 NAME:
-   arangomanager create-db-user - create database, users and database level access
+   arangoadmin create-database - create a new arangodb database
 
 USAGE:
-   arangomanager create-db-user [command options] [arguments...]
+   arangoadmin create-database [command options] [arguments...]
 
 OPTIONS:
    --admin-user value, --au value      arangodb admin user
    --admin-password value, --ap value  arangodb admin password
-   --database value, --db value        database to create, skip if it already exists
-   --user value, -u value              user to create, skip if the user already exists
-   --password value, --pass value      password for the user
-   --grant value, -g value             access level of user, could be one of ro,rw or none (default: "rw")
+   --database value, --db value        name of arangodb database
+   --user value, -u value              arangodb user
+   --password value, --pw value      arangodb password for new user
+   --grant value, -g value             level of access for arangodb user, could be one of ro,rw or none (default: "rw")
 ```
 
 ```
 NAME:
-   arangomanager create-collection - create collections in a database
+   arangoadmin create-user - create a new user for accessing arangodb
 
 USAGE:
-   arangomanager create-collection [command options] [arguments...]
+   arangoadmin create-user [command options] [arguments...]
 
 OPTIONS:
-   --database value, --db value    database where the collections will be created
-   --collection value, -c value    name of collection to create, skip if it already exist
-   --is-edge                       flag to create an edge collection
-   --user value, -u value          user to create collection, should have required grant to create collection
-   --password value, --pass value  password for the user
+   --admin-user value, --au value      arangodb admin user (default: "root")
+   --admin-password value, --ap value  arangodb admin password
+   --user value, -u value              arangodb user
+   --password value, --pw value        arangodb password for new user
 ```

@@ -11,6 +11,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "arangoadmin"
 	app.Usage = "cli for creating databases and users in arangodb"
+	app.Version = "1.0.0"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "host",
@@ -64,16 +65,15 @@ func main() {
 				cli.StringFlag{
 					Name:  "user,u",
 					Usage: "arangodb user",
-					Value: "test",
 				},
 				cli.StringFlag{
 					Name:  "password,pw",
 					Usage: "arangodb password for new user",
-					Value: "",
 				},
 				cli.StringFlag{
-					Name:  "grant",
+					Name:  "grant,g",
 					Usage: "level of access for arangodb user",
+					Value: "rw",
 				},
 			},
 		},
@@ -96,12 +96,10 @@ func main() {
 				cli.StringFlag{
 					Name:  "user,u",
 					Usage: "arangodb user",
-					Value: "test",
 				},
 				cli.StringFlag{
 					Name:  "password,pw",
 					Usage: "arangodb password for new user",
-					Value: "",
 				},
 			},
 		},
