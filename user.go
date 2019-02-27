@@ -15,12 +15,13 @@ func CreateUser(c *cli.Context) error {
 	pass := c.String("pass")
 	grant := c.String("grant")
 	db := c.String("database")
-	client, err := getClient(
-		c.GlobalString("host"),
-		c.GlobalString("port"),
-		c.String("admin-user"),
-		c.String("admin-password"),
-		c.GlobalBool("is-secure"),
+	client, err := getClient(&ClientParams{
+		Host:     c.GlobalString("host"),
+		Port:     c.GlobalString("port"),
+		User:     c.String("admin-user"),
+		Pass:     c.String("admin-password"),
+		IsSecure: c.GlobalBool("is-secure"),
+	},
 	)
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)

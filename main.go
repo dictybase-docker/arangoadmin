@@ -44,6 +44,7 @@ func main() {
 			Name:   "create-database",
 			Usage:  "create a new arangodb database",
 			Action: CreateDatabase,
+			Before: ValidateDatabaseArgs,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "admin-user,au",
@@ -55,24 +56,10 @@ func main() {
 					Usage: "arangodb admin password",
 					Value: "",
 				},
-				cli.StringFlag{
-					Name:  "user,u",
-					Usage: "arangodb user",
-					Value: "test",
-				},
-				cli.StringFlag{
-					Name:  "password,pw",
-					Usage: "arangodb password for new user",
-					Value: "",
-				},
 				cli.StringSliceFlag{
 					Name:  "database,db",
 					Usage: "name of arangodb database",
 					Value: &cli.StringSlice{},
-				},
-				cli.StringFlag{
-					Name:  "grant",
-					Usage: "level of access for arangodb user",
 				},
 			},
 		},
@@ -80,6 +67,7 @@ func main() {
 			Name:   "create-user",
 			Usage:  "create a new user for accessing arangodb",
 			Action: CreateUser,
+			Before: ValidateUserArgs,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "admin-user,au",

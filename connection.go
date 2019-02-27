@@ -4,13 +4,27 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/arangodb/go-driver"
+	driver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
 )
 
-func getClient(host, port, user, pass string, isSecure bool) (driver.Client, error) {
+type ClientParams struct {
+	Host     string
+	Port     string
+	User     string
+	Pass     string
+	IsSecure bool
+}
+
+func getClient(p *ClientParams) (driver.Client, error) {
 	var client driver.Client
 	var conn driver.Connection
+	host := p.Host
+	port := p.Port
+	user := p.User
+	pass := p.Pass
+	isSecure := p.IsSecure
+
 	if isSecure {
 		c, err := http.NewConnection(
 			http.ConnectionConfig{
