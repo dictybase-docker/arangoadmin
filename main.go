@@ -103,14 +103,6 @@ func main() {
 					Usage: "arangodb password for new user",
 					Value: "",
 				},
-				cli.StringFlag{
-					Name:  "grant",
-					Usage: "level of access for arangodb user",
-				},
-				cli.StringFlag{
-					Name:  "database,db",
-					Usage: "name of arangodb database",
-				},
 			},
 		},
 	}

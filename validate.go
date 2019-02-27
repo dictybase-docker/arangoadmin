@@ -24,9 +24,8 @@ func ValidateDatabaseArgs(c *cli.Context) error {
 func ValidateUserArgs(c *cli.Context) error {
 	for _, p := range []string{
 		"admin-user",
-		"database",
 		"user",
-		"grant",
+		"password",
 	} {
 		if len(c.String(p)) == 0 {
 			return cli.NewExitError(

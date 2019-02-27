@@ -14,7 +14,7 @@ admin:
 # #
 # Set the following from the command line or through a yaml file
 database:
-  #  name:
+  #  names:
   #  user:
   #  password:
   grant: rw

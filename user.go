@@ -12,9 +12,7 @@ import (
 func CreateUser(c *cli.Context) error {
 	logger := getLogger(c)
 	user := c.String("user")
-	pass := c.String("pass")
-	grant := c.String("grant")
-	db := c.String("database")
+	pass := c.String("password")
 	client, err := getClient(&ClientParams{
 		Host:     c.GlobalString("host"),
 		Port:     c.GlobalString("port"),
@@ -31,27 +29,13 @@ func CreateUser(c *cli.Context) error {
 		return fmt.Errorf("error in checking for user %s", err)
 	}
 	if !ok {
-		dbuser, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
+		_, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
 		if err != nil {
 			return fmt.Errorf("error in creating user %s %s", user, err)
 		}
 		logger.Infof("successfully created user %s", user)
-		dbh, err := client.Database(context.Background(), db)
-		if err != nil {
-			return fmt.Errorf("cannot get a database instance for %s %s", db, err)
-		}
-		err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
-		if err != nil {
-			return fmt.Errorf(
-				"error in granting permission %s for user %s %s",
-				grant,
-				user,
-				err,
-			)
-		}
-		logger.Infof("successfully granted permission %s existing user %s", grant, user)
 	} else {
-		logger.Infof("the user %s already exists", user)
+		logger.Infof("user %s already exists", user)
 	}
 	return nil
 }

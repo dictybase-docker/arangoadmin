@@ -40,7 +40,7 @@ func CreateDatabase(c *cli.Context) error {
 	}
 	if len(c.String("user")) > 0 {
 		user := c.String("user")
-		pass := c.String("pass")
+		pass := c.String("password")
 		grant := c.String("grant")
 		db := c.StringSlice("database")
 		ok, err := client.UserExists(context.Background(), user)
