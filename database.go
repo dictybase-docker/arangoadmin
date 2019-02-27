@@ -26,14 +26,14 @@ func CreateDatabase(c *cli.Context) error {
 	for _, n := range db {
 		ok, err := client.DatabaseExists(context.Background(), n)
 		if err != nil {
-			return fmt.Errorf("error in checking existence of database %s %s", n, err)
+			return cli.NewExitError(fmt.Sprintf("error in checking existence of database %s %s", n, err), 2)
 		}
 		if ok {
 			logger.Infof("database %s exists, nothing to create", n)
 		} else {
 			_, err = client.CreateDatabase(context.Background(), n, nil)
 			if err != nil {
-				return fmt.Errorf("error in creating database %s %s", n, err)
+				return cli.NewExitError(fmt.Sprintf("error in creating database %s %s", n, err), 2)
 			}
 			logger.Infof("created database %s", n)
 		}
@@ -42,7 +42,7 @@ func CreateDatabase(c *cli.Context) error {
 		user := c.String("user")
 		pass := c.String("pass")
 		grant := c.String("grant")
-		db := c.String("database")
+		db := c.StringSlice("database")
 		ok, err := client.UserExists(context.Background(), user)
 		if err != nil {
 			return fmt.Errorf("error in checking for user %s", err)
@@ -53,20 +53,23 @@ func CreateDatabase(c *cli.Context) error {
 				return fmt.Errorf("error in creating user %s %s", user, err)
 			}
 			logger.Infof("successfully created user %s", user)
-			dbh, err := client.Database(context.Background(), db)
-			if err != nil {
-				return fmt.Errorf("cannot get a database instance for %s %s", db, err)
+			for _, n := range db {
+				dbh, err := client.Database(context.Background(), n)
+				if err != nil {
+					return fmt.Errorf("cannot get a database instance for %s %s", n, err)
+				}
+				err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
+				if err != nil {
+					return fmt.Errorf(
+						"error in granting permission %s for user %s in database %s %s",
+						grant,
+						user,
+						n,
+						err,
+					)
+				}
+				logger.Infof("successfully granted permission %s existing user %s for database %s", grant, user, n)
 			}
-			err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
-			if err != nil {
-				return fmt.Errorf(
-					"error in granting permission %s for user %s %s",
-					grant,
-					user,
-					err,
-				)
-			}
-			logger.Infof("successfully granted permission %s existing user %s", grant, user)
 		} else {
 			logger.Infof("the user %s already exists", user)
 		}
