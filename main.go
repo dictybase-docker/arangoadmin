@@ -61,6 +61,20 @@ func main() {
 					Usage: "name of arangodb database",
 					Value: &cli.StringSlice{},
 				},
+				cli.StringFlag{
+					Name:  "user,u",
+					Usage: "arangodb user",
+					Value: "test",
+				},
+				cli.StringFlag{
+					Name:  "password,pw",
+					Usage: "arangodb password for new user",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "grant",
+					Usage: "level of access for arangodb user",
+				},
 			},
 		},
 		{
