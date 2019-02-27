@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	driver "github.com/arangodb/go-driver"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -36,17 +35,4 @@ func CreateDatabase(c *cli.Context) error {
 		logger.Infof("created database %s", db)
 	}
 	return nil
-}
-
-func getGrant(g string) driver.Grant {
-	var grnt driver.Grant
-	switch g {
-	case "rw":
-		grnt = driver.GrantReadWrite
-	case "ro":
-		grnt = driver.GrantReadOnly
-	default:
-		grnt = driver.GrantNone
-	}
-	return grnt
 }
