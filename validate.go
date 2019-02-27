@@ -9,7 +9,6 @@ import (
 func ValidateDatabaseArgs(c *cli.Context) error {
 	for _, p := range []string{
 		"admin-user",
-		"admin-password",
 		"database",
 	} {
 		if len(c.String(p)) == 0 {
