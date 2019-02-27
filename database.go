@@ -10,7 +10,7 @@ import (
 // CreateDatabase creates a new ArangoDB database
 func CreateDatabase(c *cli.Context) error {
 	logger := getLogger(c)
-	db := c.String("database")
+	db := c.StringSlice("database")
 	client, err := getClient(
 		c.GlobalString("host"),
 		c.GlobalString("port"),
@@ -21,18 +21,20 @@ func CreateDatabase(c *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)
 	}
-	ok, err := client.DatabaseExists(context.Background(), db)
-	if err != nil {
-		return fmt.Errorf("error in checking existence of database %s %s", db, err)
-	}
-	if ok {
-		logger.Infof("database %s exists, nothing to create", db)
-	} else {
-		_, err = client.CreateDatabase(context.Background(), db, nil)
+	for _, n := range db {
+		ok, err := client.DatabaseExists(context.Background(), n)
 		if err != nil {
-			return fmt.Errorf("error in creating database %s %s", db, err)
+			return fmt.Errorf("error in checking existence of database %s %s", n, err)
 		}
-		logger.Infof("created database %s", db)
+		if ok {
+			logger.Infof("database %s exists, nothing to create", n)
+		} else {
+			_, err = client.CreateDatabase(context.Background(), n, nil)
+			if err != nil {
+				return fmt.Errorf("error in creating database %s %s", n, err)
+			}
+			logger.Infof("created database %s", n)
+		}
 	}
 	return nil
 }

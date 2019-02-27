@@ -65,9 +65,10 @@ func main() {
 					Usage: "arangodb password for new user",
 					Value: "",
 				},
-				cli.StringFlag{
+				cli.StringSliceFlag{
 					Name:  "database,db",
 					Usage: "name of arangodb database",
+					Value: &cli.StringSlice{},
 				},
 				cli.StringFlag{
 					Name:  "grant",
