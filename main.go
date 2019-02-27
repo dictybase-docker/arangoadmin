@@ -34,7 +34,7 @@ func main() {
 			Usage: "format of the logging out, either of json or text",
 			Value: "json",
 		},
-		cli.BoolFlag{
+		cli.BoolTFlag{
 			Name:  "is-secure",
 			Usage: "connect through a secure endpoint",
 		},
