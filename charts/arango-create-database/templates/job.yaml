@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "arango-collection.fullname" . }}
+  name: {{ template "arango-create-database.fullname" . }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: "{{ .Release.Name }}"
@@ -9,29 +9,31 @@ metadata:
 spec:
   template:
     metadata:
-      name: {{ template "arango-collection.fullname" . }}
+      name: {{ template "arango-create-database.fullname" . }}
       labels:
-        app: {{ template "arango-collection.fullname" . }}
+        app: {{ template "arango-create-database.fullname" . }}
     spec:
       containers:
-      - name: {{ template "arango-collection.fullname" . }}
+      - name: {{ template "arango-create-database.fullname" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
         args: [
           "--log-level",
           "info",
-          "create-collection",
+          "create-database",
+          "--admin-user",
+          "{{ .Values.admin.user }}",
+          "--admin-password",
+          "{{ .Values.admin.password }}",
+          {{ range .Values.database.names }}
           "--database",
-        {{- if .Values.database }}
-          "{{ .Values.database.name }}",
+          {{ . | quote }},
+          {{ end }}
           "--user",
           "{{ .Values.database.user }}",
           "--password",
           "{{ .Values.database.password}}",
-        {{- end }}
-          "--collection",
-          "{{ .Values.collection.name }}",
-          "--is-edge",
-          "{{ .Values.collection.isEdge }}"
+          "--grant",
+          "{{ .Values.database.grant }}"
         ]
       restartPolicy: Never

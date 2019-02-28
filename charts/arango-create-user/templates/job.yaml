@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "arango-database.fullname" . }}
+  name: {{ template "arango-create-user.fullname" . }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: "{{ .Release.Name }}"
@@ -9,31 +9,25 @@ metadata:
 spec:
   template:
     metadata:
-      name: {{ template "arango-database.fullname" . }}
+      name: {{ template "arango-create-user.fullname" . }}
       labels:
-        app: {{ template "arango-database.fullname" . }}
+        app: {{ template "arango-create-user.fullname" . }}
     spec:
       containers:
-      - name: {{ template "arango-database.fullname" . }}
+      - name: {{ template "arango-create-user.fullname" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
         args: [
           "--log-level",
           "info",
-          "create-db-user",
+          "create-user",
           "--admin-user",
           "{{ .Values.admin.user }}",
           "--admin-password",
           "{{ .Values.admin.password }}",
-        {{- if .Values.database }}
-          "--database",
-          "{{ .Values.database.name }}",
           "--user",
-          "{{ .Values.database.user }}",
+          "{{ .Values.user.name }}",
           "--password",
-          "{{ .Values.database.password}}",
-          "--grant",
-          "{{ .Values.database.grant }}"
-        {{- end }}
+          "{{ .Values.user.password}}",
         ]
       restartPolicy: Never

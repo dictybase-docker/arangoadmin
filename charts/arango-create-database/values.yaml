@@ -3,19 +3,18 @@
 # Declare variables to be passed into your templates.
 
 image:
-  repository: dictybase/arangomanager
-  tag: 0.0.5
+  repository: dictybase/arangoadmin
+  tag: 0.0.1
   pullPolicy: IfNotPresent
 
 admin:
   user: root
-  password: "" 
+  password: ""
 
 # #
 # Set the following from the command line or through a yaml file
 database:
-#  name:
-#  user:
-#  password:
-   grant: rw
-
+  #  names:
+  #  user:
+  #  password:
+  grant: rw
