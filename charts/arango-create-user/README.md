@@ -24,7 +24,7 @@ For upgrades and rollback, look [here](https://docs.helm.sh/using_helm/#helm-upg
 
 ## Configuration
 
-The following tables lists the configurable parameters of the **chado-sqitch** chart and their default values.
+The following tables lists the configurable parameters of the **arango-create-user** chart and their default values.
 
 | Parameter          | Description                                     | Default                 |
 | ------------------ | ----------------------------------------------- | ----------------------- |

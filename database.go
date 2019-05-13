@@ -28,50 +28,73 @@ func CreateDatabase(c *cli.Context) error {
 		if err != nil {
 			return cli.NewExitError(fmt.Sprintf("error in checking existence of database %s %s", n, err), 2)
 		}
-		if ok {
-			logger.Infof("database %s exists, nothing to create", n)
-		} else {
+		if !ok {
 			_, err = client.CreateDatabase(context.Background(), n, nil)
 			if err != nil {
 				return cli.NewExitError(fmt.Sprintf("error in creating database %s %s", n, err), 2)
 			}
 			logger.Infof("created database %s", n)
+		} else {
+			logger.Infof("database %s exists, nothing to create", n)
 		}
 	}
-	if len(c.String("user")) > 0 {
-		user := c.String("user")
-		pass := c.String("password")
-		grant := c.String("grant")
-		db := c.StringSlice("database")
-		ok, err := client.UserExists(context.Background(), user)
+	if len(c.String("user")) == 0 {
+		return nil
+	}
+	user := c.String("user")
+	pass := c.String("password")
+	grant := c.String("grant")
+	ok, err := client.UserExists(context.Background(), user)
+	if err != nil {
+		return fmt.Errorf("error in checking for user %s", err)
+	}
+	// if user doesn't exist, create them and grant specified permissions
+	if !ok {
+		dbuser, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
 		if err != nil {
-			return fmt.Errorf("error in checking for user %s", err)
+			return fmt.Errorf("error in creating user %s %s", user, err)
 		}
-		if !ok {
-			dbuser, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
+		logger.Infof("successfully created user %s", user)
+		for _, n := range db {
+			dbh, err := client.Database(context.Background(), n)
 			if err != nil {
-				return fmt.Errorf("error in creating user %s %s", user, err)
+				return fmt.Errorf("cannot get a database instance for %s %s", n, err)
 			}
-			logger.Infof("successfully created user %s", user)
-			for _, n := range db {
-				dbh, err := client.Database(context.Background(), n)
-				if err != nil {
-					return fmt.Errorf("cannot get a database instance for %s %s", n, err)
-				}
-				err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
-				if err != nil {
-					return fmt.Errorf(
-						"error in granting permission %s for user %s in database %s %s",
-						grant,
-						user,
-						n,
-						err,
-					)
-				}
-				logger.Infof("successfully granted permission %s existing user %s for database %s", grant, user, n)
+			err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
+			if err != nil {
+				return fmt.Errorf(
+					"error in granting permission %s for user %s in database %s %s",
+					grant,
+					user,
+					n,
+					err,
+				)
 			}
-		} else {
-			logger.Infof("the user %s already exists", user)
+			logger.Infof("successfully granted permission %s existing user %s for database %s", grant, user, n)
+		}
+	} else {
+		// if user does exist, then just grant permissions for them
+		dbuser, err := client.User(context.Background(), user)
+		if err != nil {
+			return fmt.Errorf("error in finding user %s %s", user, err)
+		}
+		logger.Infof("successfully found user %s", user)
+		for _, n := range db {
+			dbh, err := client.Database(context.Background(), n)
+			if err != nil {
+				return fmt.Errorf("cannot get a database instance for %s %s", n, err)
+			}
+			err = dbuser.SetDatabaseAccess(context.Background(), dbh, getGrant(grant))
+			if err != nil {
+				return fmt.Errorf(
+					"error in granting permission %s for user %s in database %s %s",
+					grant,
+					user,
+					n,
+					err,
+				)
+			}
+			logger.Infof("successfully granted permission %s existing user %s for database %s", grant, user, n)
 		}
 	}
 	return nil
