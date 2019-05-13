@@ -41,7 +41,7 @@ OPTIONS:
    --admin-password value, --ap value  arangodb admin password
    --database value, --db value        name of arangodb database
    --user value, -u value              arangodb user
-   --password value, --pw value      arangodb password for new user
+   --password value, --pw value        arangodb password for new user
    --grant value, -g value             level of access for arangodb user, could be one of ro,rw or none (default: "rw")
 ```
 

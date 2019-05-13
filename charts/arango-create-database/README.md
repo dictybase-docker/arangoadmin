@@ -1,13 +1,13 @@
 # arango-create-database
 
-This [helm](https://github.com/kubernetes/helm) chart provides [kubernetes](http://kubernetes.io) manifests for running an [arango-create-database](https://hub.docker.com/r/dictybase/arangoadmin/) job.
+This [Helm](https://github.com/kubernetes/helm) chart provides [Kubernetes](http://kubernetes.io) manifests for running an [arango-create-database](https://hub.docker.com/r/dictybase/arangoadmin/) job.
 
 # Managing the chart
 
 ## Install
 
 ```
-helm install --name dev-release arango-create-database
+helm install --name dev-release dictybase/arango-create-database
 ```
 
 For details, look [here](https://docs.helm.sh/using_helm/#helm-install-installing-a-package).
@@ -24,7 +24,7 @@ For upgrades and rollback, look [here](https://docs.helm.sh/using_helm/#helm-upg
 
 ## Configuration
 
-The following tables lists the configurable parameters of the **chado-sqitch** chart and their default values.
+The following tables lists the configurable parameters of the **arango-create-database** chart and their default values.
 
 | Parameter           | Description                                     | Default                 |
 | ------------------- | ----------------------------------------------- | ----------------------- |
@@ -33,7 +33,7 @@ The following tables lists the configurable parameters of the **chado-sqitch** c
 | `image.pullPolicy`  | Image pull policy                               | `IfNotPresent`          |
 | `admin.user`        | Name of user with ArangoDB admin privileges     | `root`                  |
 | `admin.password`    | Password of user with ArangoDB admin privileges | ``                      |
-| `database.names`    | Array of database names to create               | ``                      |
+| `database.names`    | Array of database names to create               | `[]`                    |
 | `database.user`     | Name of ArangoDB user to create                 | ``                      |
 | `database.password` | Password for new ArangoDB user                  | ``                      |
 | `database.grant`    | Level of access for ArangoDB user               | `rw`                    |
