@@ -28,15 +28,15 @@ func CreateUser(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error in checking for user %s", err)
 	}
-	if !ok {
-		_, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
-		if err != nil {
-			return fmt.Errorf("error in creating user %s %s", user, err)
-		}
-		logger.Infof("successfully created user %s", user)
-	} else {
+	if ok {
 		logger.Infof("user %s already exists", user)
+		return nil
 	}
+	u, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
+	if err != nil {
+		return fmt.Errorf("error in creating user %s %s", user, err)
+	}
+	logger.Infof("successfully created user %s", u.Name())
 	return nil
 }
 
