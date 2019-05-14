@@ -4,7 +4,7 @@
 
 image:
   repository: dictybase/arangoadmin
-  tag: 2.2.0
+  tag: 2.3.0
   pullPolicy: IfNotPresent
 
 admin:
