@@ -20,6 +20,9 @@ spec:
         args: [
           "--log-level",
           "info",
+          {{- if eq .Values.endpoint "https" }}
+            "--is-secure",
+          {{- end }}
           "create-database",
           "--admin-user",
           "{{ .Values.admin.user }}",

@@ -31,6 +31,7 @@ The following tables lists the configurable parameters of the **arango-create-da
 | `image.repository`  | arango-create-database image                    | `dictybase/arangoadmin` |
 | `image.tag`         | image tag                                       | `0.0.1`                 |
 | `image.pullPolicy`  | Image pull policy                               | `IfNotPresent`          |
+| `endpoint`          | Connection endpoint http or https(ssl)          | `https`                 |
 | `admin.user`        | Name of user with ArangoDB admin privileges     | `root`                  |
 | `admin.password`    | Password of user with ArangoDB admin privileges | ``                      |
 | `database.names`    | Array of database names to create               | `[]`                    |
