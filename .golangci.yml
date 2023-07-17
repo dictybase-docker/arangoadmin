@@ -5,8 +5,6 @@ linters-settings:
       checks: ["all", "-SA5001"]
     funlen:
         lines: 80
-    errcheck: 
-        exclude: errcheck_excludes.txt
     revive:
       rules:
         - name: var-naming
@@ -19,7 +17,6 @@ linters:
     - bodyclose
     - bidichk
     - cyclop 
-    - deadcode
     - depguard
     - decorder
     - dogsled
@@ -35,14 +32,11 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
     - nakedret
     - revive
-    - scopelint
     - staticcheck
-    - structcheck
     - typecheck
     - unconvert
     - unparam
