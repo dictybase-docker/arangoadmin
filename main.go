@@ -13,34 +13,7 @@ func main() {
 	app.Name = "arangoadmin"
 	app.Usage = "cli for creating databases and users in arangodb"
 	app.Version = "1.0.0"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "host",
-			Usage:  "arangodb host address",
-			EnvVar: "ARANGODB_SERVICE_HOST",
-			Value:  "arangodb",
-		},
-		cli.StringFlag{
-			Name:   "port",
-			Usage:  "arangodb port",
-			EnvVar: "ARANGODB_SERVICE_PORT",
-			Value:  "8529",
-		},
-		cli.StringFlag{
-			Name:  "log-level",
-			Usage: "log level for the application",
-			Value: "info",
-		},
-		cli.StringFlag{
-			Name:  "log-format",
-			Usage: "format of the logging out, either of json or text",
-			Value: "json",
-		},
-		cli.BoolTFlag{
-			Name:  "is-secure",
-			Usage: "connect through a secure endpoint",
-		},
-	}
+	app.Flags = globalFlags()
 	app.Commands = []cli.Command{
 		{
 			Name:   "create-database",
@@ -138,4 +111,35 @@ func getLogger(c *cli.Context) *logrus.Entry {
 		log.Level = logrus.PanicLevel
 	}
 	return logrus.NewEntry(log)
+}
+
+func globalFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:   "host",
+			Usage:  "arangodb host address",
+			EnvVar: "ARANGODB_SERVICE_HOST",
+			Value:  "arangodb",
+		},
+		cli.StringFlag{
+			Name:   "port",
+			Usage:  "arangodb port",
+			EnvVar: "ARANGODB_SERVICE_PORT",
+			Value:  "8529",
+		},
+		cli.StringFlag{
+			Name:  "log-level",
+			Usage: "log level for the application",
+			Value: "info",
+		},
+		cli.StringFlag{
+			Name:  "log-format",
+			Usage: "format of the logging out, either of json or text",
+			Value: "json",
+		},
+		cli.BoolTFlag{
+			Name:  "is-secure",
+			Usage: "connect through a secure endpoint",
+		},
+	}
 }
