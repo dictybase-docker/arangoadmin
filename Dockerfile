@@ -1,12 +1,24 @@
-FROM golang:1.11.5-alpine3.8
+FROM golang:1.20.6-bullseye
 LABEL maintainer="Siddhartha Basu <siddhartha-basu@northwestern.edu>"
-RUN apk add --no-cache git build-base
+ENV CGO_ENABLED=0 \
+	GOOS=linux \
+	GOARCH=amd64
+RUN apt-get -qq update \
+	&& apt-get -yqq install upx
 RUN mkdir -p /arangoadmin
 WORKDIR /arangoadmin
-COPY go.mod *.go ./
-RUN go get ./... && go mod tidy && go build -o app
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+COPY *.go ./
+RUN go build \
+	-a \
+	-ldflags "-s -w -extldflags '-static'" \
+	-installsuffix cgo \
+	-tags netgo \
+	-o /bin/app 
+RUN upx -q -9 /bin/app
 
-FROM alpine:3.8
-RUN apk --no-cache add ca-certificates
-COPY --from=0 /arangoadmin/app /usr/local/bin/
+FROM gcr.io/distroless/static
+COPY --from=0 /bin/app /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/app"]
