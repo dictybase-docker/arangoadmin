@@ -137,7 +137,7 @@ func globalFlags() []cli.Flag {
 			Usage: "format of the logging out, either of json or text",
 			Value: "json",
 		},
-		cli.BoolTFlag{
+		cli.BoolFlag{
 			Name:  "is-secure",
 			Usage: "connect through a secure endpoint",
 		},
