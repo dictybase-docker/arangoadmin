@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/arangodb/go-driver v1.6.9
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
