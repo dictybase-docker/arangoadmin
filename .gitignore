@@ -1,3 +1,4 @@
 vendor/
 arangoadmin
 test/
+.tool-versions
