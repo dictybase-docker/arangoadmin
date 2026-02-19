@@ -1,24 +1,30 @@
-FROM golang:1.20.6-bullseye
+# Build Stage
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
 LABEL maintainer="Siddhartha Basu <siddhartha-basu@northwestern.edu>"
-ENV CGO_ENABLED=0 \
-	GOOS=linux \
-	GOARCH=amd64
-RUN apt-get -qq update \
-	&& apt-get -yqq install upx
-RUN mkdir -p /arangoadmin
+
+RUN apk add --no-cache upx
+
 WORKDIR /arangoadmin
-COPY go.mod ./
-COPY go.sum ./
+
+COPY go.mod go.sum ./
 RUN go mod download
+
 COPY *.go ./
-RUN go build \
-	-a \
-	-ldflags "-s -w -extldflags '-static'" \
-	-installsuffix cgo \
-	-tags netgo \
-	-o /bin/app 
+
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
+	-ldflags "-s -w" \
+	-o /bin/app
+
 RUN upx -q -9 /bin/app
 
-FROM gcr.io/distroless/static
-COPY --from=0 /bin/app /usr/local/bin/
+# Runtime Stage
+FROM gcr.io/distroless/static-debian12
+
+LABEL maintainer="Siddhartha Basu <siddhartha-basu@northwestern.edu>"
+
+COPY --from=builder /bin/app /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/app"]
