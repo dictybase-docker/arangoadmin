@@ -1,6 +1,6 @@
 module github.com/dictybase-docker/arangoadmin
 
-go 1.20
+go 1.25
 
 require (
 	github.com/arangodb/go-driver v1.6.6
