@@ -1,4 +1,4 @@
-name: build resticpg docker image
+name: build docker image
 on:
   push:
     branches:
