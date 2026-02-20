@@ -1,6 +1,6 @@
 # Set default variables
-registry := "ghcr.io"
-github_user := env_var_or_default("GITHUB_USER", "dictybase-docker")
+registry := "ghcr.io" github_user := env_var_or_default("GITHUB_USER",
+"dictybase-docker")
 ghcr_image := registry + "/" + github_user + "/arangoadmin"
 platforms := "linux/amd64,linux/arm64"
 dockerfile := "Dockerfile"
