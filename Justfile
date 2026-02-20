@@ -53,7 +53,7 @@ push-ghcr-arch arch="linux/amd64" tag=tag:
     docker buildx build \
         --platform {{arch}} \
         -f {{dockerfile}} \
-        -t {{ghcr_image}}:{{tag}}-{{arch}} \
+        -t {{ghcr_image}}:{{tag}} \
         --push \
         .
 
