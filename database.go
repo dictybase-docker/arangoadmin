@@ -6,7 +6,7 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/sirupsen/logrus"
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v3"
 )
 
 // Function to find the sum of integers in a given list
@@ -47,18 +47,18 @@ func Min(numbers []int) int {
 	return min
 }
 
-func CreateDatabase(c *cli.Context) error {
-	logger := getLogger(c)
-	db := c.StringSlice("database")
+func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
+	logger := getLogger(cmd)
+	db := cmd.StringSlice("database")
 	client, err := getClient(&ClientParams{
-		Host:     c.GlobalString("host"),
-		Port:     c.GlobalString("port"),
-		User:     c.String("admin-user"),
-		Pass:     c.String("admin-password"),
-		IsSecure: c.GlobalBool("is-secure"),
+		Host:     cmd.String("host"),
+		Port:     cmd.String("port"),
+		User:     cmd.String("admin-user"),
+		Pass:     cmd.String("admin-password"),
+		IsSecure: cmd.Bool("is-secure"),
 	})
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)
+		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
 
 	for _, n := range db {
@@ -67,19 +67,19 @@ func CreateDatabase(c *cli.Context) error {
 		}
 	}
 
-	if len(c.String("user")) == 0 {
+	if len(cmd.String("user")) == 0 {
 		return nil
 	}
 	err = createUserAndSetDatabaseAccess(
 		logger,
 		client,
 		db,
-		c.String("user"),
-		c.String("password"),
-		c.String("grant"),
+		cmd.String("user"),
+		cmd.String("password"),
+		cmd.String("grant"),
 	)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 2)
+		return cli.Exit(err.Error(), 2)
 	}
 	return nil
 }
@@ -134,13 +134,13 @@ func createOrUpdateDatabase(
 ) error {
 	ok, err := client.DatabaseExists(context.Background(), name)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf(
+		return cli.Exit(fmt.Sprintf(
 			"error in checking existence of database %s %s", name, err), 2,
 		)
 	}
 	if !ok {
 		if _, err = client.CreateDatabase(context.Background(), name, nil); err != nil {
-			return cli.NewExitError(
+			return cli.Exit(
 				fmt.Sprintf("error in creating database %s %s", name, err), 2,
 			)
 		}
