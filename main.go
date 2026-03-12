@@ -17,66 +17,8 @@ func main() {
 		Flags:   globalFlags(),
 		Commands: []*cli.Command{
 			createDatabaseCommand(),
-			{
-				Name:   "create-user",
-				Usage:  "create a new user for accessing arangodb",
-				Action: CreateUser,
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "admin-user",
-						Aliases: []string{"au"},
-						Usage:   "arangodb admin user",
-						Value:   "root",
-					},
-					&cli.StringFlag{
-						Name:    "admin-password",
-						Aliases: []string{"ap"},
-						Usage:   "arangodb admin password",
-					},
-					&cli.StringFlag{
-						Name:     "user",
-						Aliases:  []string{"u"},
-						Usage:    "arangodb user",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "password",
-						Aliases:  []string{"pw"},
-						Usage:    "arangodb password for new user",
-						Required: true,
-					},
-				},
-			},
-			{
-				Name:   "update-user",
-				Usage:  "update an existing user's password for accessing arangodb",
-				Action: UpdateUser,
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "admin-user",
-						Aliases: []string{"au"},
-						Usage:   "arangodb admin user",
-						Value:   "root",
-					},
-					&cli.StringFlag{
-						Name:    "admin-password",
-						Aliases: []string{"ap"},
-						Usage:   "arangodb admin password",
-					},
-					&cli.StringFlag{
-						Name:     "user",
-						Aliases:  []string{"u"},
-						Usage:    "arangodb user",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "password",
-						Aliases:  []string{"pw"},
-						Usage:    "new arangodb password for the user",
-						Required: true,
-					},
-				},
-			},
+			createUserCommand(),
+			updateUserCommand(),
 		},
 	}
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -183,6 +125,72 @@ func createDatabaseCommand() *cli.Command {
 				Aliases: []string{"g"},
 				Usage:   "level of access for arangodb user",
 				Value:   "rw",
+			},
+		},
+	}
+}
+
+func createUserCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "create-user",
+		Usage:  "create a new user for accessing arangodb",
+		Action: CreateUser,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "admin-user",
+				Aliases: []string{"au"},
+				Usage:   "arangodb admin user",
+				Value:   "root",
+			},
+			&cli.StringFlag{
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
+			},
+			&cli.StringFlag{
+				Name:     "user",
+				Aliases:  []string{"u"},
+				Usage:    "arangodb user",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "password",
+				Aliases:  []string{"pw"},
+				Usage:    "arangodb password for new user",
+				Required: true,
+			},
+		},
+	}
+}
+
+func updateUserCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "update-user",
+		Usage:  "update an existing user's password for accessing arangodb",
+		Action: UpdateUser,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "admin-user",
+				Aliases: []string{"au"},
+				Usage:   "arangodb admin user",
+				Value:   "root",
+			},
+			&cli.StringFlag{
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
+			},
+			&cli.StringFlag{
+				Name:     "user",
+				Aliases:  []string{"u"},
+				Usage:    "arangodb user",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "password",
+				Aliases:  []string{"pw"},
+				Usage:    "new arangodb password for the user",
+				Required: true,
 			},
 		},
 	}
