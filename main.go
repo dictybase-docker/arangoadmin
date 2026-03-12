@@ -15,44 +15,10 @@ func main() {
 	app.Version = "1.0.0"
 	app.Flags = globalFlags()
 	app.Commands = []cli.Command{
+		createDatabaseCommand(),
 		{
-			Name:   "create-database",
-			Usage:  "create a new arangodb database",
-			Action: CreateDatabase,
-			Before: ValidateDatabaseArgs,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "admin-user,au",
-					Usage: "arangodb admin user",
-					Value: "root",
-				},
-				cli.StringFlag{
-					Name:  "admin-password,ap",
-					Usage: "arangodb admin password",
-					Value: "",
-				},
-				cli.StringSliceFlag{
-					Name:  "database,db",
-					Usage: "name of arangodb database",
-					Value: &cli.StringSlice{},
-				},
-				cli.StringFlag{
-					Name:  "user,u",
-					Usage: "arangodb user",
-				},
-				cli.StringFlag{
-					Name:  "password,pw",
-					Usage: "arangodb password for new user",
-				},
-				cli.StringFlag{
-					Name:  "grant,g",
-					Usage: "level of access for arangodb user",
-					Value: "rw",
-				},
-			},
-		},
-		{
-			Name:   "create-user",
+			Name: "create-user",
+
 			Usage:  "create a new user for accessing arangodb",
 			Action: CreateUser,
 			Before: ValidateUserArgs,
@@ -74,6 +40,32 @@ func main() {
 				cli.StringFlag{
 					Name:  "password,pw",
 					Usage: "arangodb password for new user",
+				},
+			},
+		},
+		{
+			Name:   "update-user",
+			Usage:  "update an existing user's password for accessing arangodb",
+			Action: UpdateUser,
+			Before: ValidateUserArgs,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "admin-user,au",
+					Usage: "arangodb admin user",
+					Value: "root",
+				},
+				cli.StringFlag{
+					Name:  "admin-password,ap",
+					Usage: "arangodb admin password",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "user,u",
+					Usage: "arangodb user",
+				},
+				cli.StringFlag{
+					Name:  "password,pw",
+					Usage: "new arangodb password for the user",
 				},
 			},
 		},
@@ -140,6 +132,45 @@ func globalFlags() []cli.Flag {
 		cli.BoolFlag{
 			Name:  "is-secure",
 			Usage: "connect through a secure endpoint",
+		},
+	}
+}
+
+func createDatabaseCommand() cli.Command {
+	return cli.Command{
+		Name:   "create-database",
+		Usage:  "create a new arangodb database",
+		Action: CreateDatabase,
+		Before: ValidateDatabaseArgs,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "admin-user,au",
+				Usage: "arangodb admin user",
+				Value: "root",
+			},
+			cli.StringFlag{
+				Name:  "admin-password,ap",
+				Usage: "arangodb admin password",
+				Value: "",
+			},
+			cli.StringSliceFlag{
+				Name:  "database,db",
+				Usage: "name of arangodb database",
+				Value: &cli.StringSlice{},
+			},
+			cli.StringFlag{
+				Name:  "user,u",
+				Usage: "arangodb user",
+			},
+			cli.StringFlag{
+				Name:  "password,pw",
+				Usage: "arangodb password for new user",
+			},
+			cli.StringFlag{
+				Name:  "grant,g",
+				Usage: "level of access for arangodb user",
+				Value: "rw",
+			},
 		},
 	}
 }

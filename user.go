@@ -40,6 +40,46 @@ func CreateUser(c *cli.Context) error {
 	return nil
 }
 
+// UpdateUser updates the password of an existing user in ArangoDB
+func UpdateUser(c *cli.Context) error {
+	logger := getLogger(c)
+	user := c.String("user")
+	pass := c.String("password")
+	client, err := getClient(&ClientParams{
+		Host:     c.GlobalString("host"),
+		Port:     c.GlobalString("port"),
+		User:     c.String("admin-user"),
+		Pass:     c.String("admin-password"),
+		IsSecure: c.GlobalBool("is-secure"),
+	},
+	)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)
+	}
+
+	ok, err := client.UserExists(context.Background(), user)
+	if err != nil {
+		return fmt.Errorf("error in checking for user %s: %s", user, err)
+	}
+	if !ok {
+		logger.Errorf("user %s does not exist", user)
+		return cli.NewExitError(fmt.Sprintf("user %s does not exist", user), 2)
+	}
+
+	dbuser, err := client.User(context.Background(), user)
+	if err != nil {
+		return fmt.Errorf("error fetching user %s: %s", user, err)
+	}
+
+	err = dbuser.Update(context.Background(), driver.UserOptions{Password: pass})
+	if err != nil {
+		return fmt.Errorf("error updating user %s: %s", user, err)
+	}
+
+	logger.Infof("successfully updated password for user %s", user)
+	return nil
+}
+
 func getGrant(g string) driver.Grant {
 	var grnt driver.Grant
 	switch g {
