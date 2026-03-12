@@ -29,10 +29,9 @@ func main() {
 						Value:   "root",
 					},
 					&cli.StringFlag{
-						Name:     "admin-password",
-						Aliases:  []string{"ap"},
-						Usage:    "arangodb admin password",
-						Required: true,
+						Name:    "admin-password",
+						Aliases: []string{"ap"},
+						Usage:   "arangodb admin password",
 					},
 					&cli.StringFlag{
 						Name:     "user",
@@ -60,10 +59,9 @@ func main() {
 						Value:   "root",
 					},
 					&cli.StringFlag{
-						Name:     "admin-password",
-						Aliases:  []string{"ap"},
-						Usage:    "arangodb admin password",
-						Required: true,
+						Name:    "admin-password",
+						Aliases: []string{"ap"},
+						Usage:   "arangodb admin password",
 					},
 					&cli.StringFlag{
 						Name:     "user",
@@ -160,10 +158,9 @@ func createDatabaseCommand() *cli.Command {
 				Value:   "root",
 			},
 			&cli.StringFlag{
-				Name:     "admin-password",
-				Aliases:  []string{"ap"},
-				Usage:    "arangodb admin password",
-				Required: true,
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
 			},
 			&cli.StringSliceFlag{
 				Name:     "database",
@@ -172,16 +169,14 @@ func createDatabaseCommand() *cli.Command {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "user",
-				Aliases:  []string{"u"},
-				Usage:    "arangodb user",
-				Required: true,
+				Name:    "user",
+				Aliases: []string{"u"},
+				Usage:   "arangodb user",
 			},
 			&cli.StringFlag{
-				Name:     "password",
-				Aliases:  []string{"pw"},
-				Usage:    "arangodb password for new user",
-				Required: true,
+				Name:    "password",
+				Aliases: []string{"pw"},
+				Usage:   "arangodb password for new user",
 			},
 			&cli.StringFlag{
 				Name:    "grant",
