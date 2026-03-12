@@ -1,38 +1,39 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v3"
 )
 
-func ValidateDatabaseArgs(c *cli.Context) error {
+func ValidateDatabaseArgs(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	for _, p := range []string{
 		"admin-user",
 		"database",
 	} {
-		if len(c.String(p)) == 0 {
-			return cli.NewExitError(
+		if len(cmd.String(p)) == 0 {
+			return ctx, cli.Exit(
 				fmt.Sprintf("argument %s is missing", p),
 				2,
 			)
 		}
 	}
-	return nil
+	return ctx, nil
 }
 
-func ValidateUserArgs(c *cli.Context) error {
+func ValidateUserArgs(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	for _, p := range []string{
 		"admin-user",
 		"user",
 		"password",
 	} {
-		if len(c.String(p)) == 0 {
-			return cli.NewExitError(
+		if len(cmd.String(p)) == 0 {
+			return ctx, cli.Exit(
 				fmt.Sprintf("argument %s is missing", p),
 				2,
 			)
 		}
 	}
-	return nil
+	return ctx, nil
 }

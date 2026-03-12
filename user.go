@@ -5,24 +5,24 @@ import (
 	"fmt"
 
 	driver "github.com/arangodb/go-driver"
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v3"
 )
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
-func CreateUser(c *cli.Context) error {
-	logger := getLogger(c)
-	user := c.String("user")
-	pass := c.String("password")
+func CreateUser(ctx context.Context, cmd *cli.Command) error {
+	logger := getLogger(cmd)
+	user := cmd.String("user")
+	pass := cmd.String("password")
 	client, err := getClient(&ClientParams{
-		Host:     c.GlobalString("host"),
-		Port:     c.GlobalString("port"),
-		User:     c.String("admin-user"),
-		Pass:     c.String("admin-password"),
-		IsSecure: c.GlobalBool("is-secure"),
+		Host:     cmd.String("host"),
+		Port:     cmd.String("port"),
+		User:     cmd.String("admin-user"),
+		Pass:     cmd.String("admin-password"),
+		IsSecure: cmd.Bool("is-secure"),
 	},
 	)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)
+		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
 	ok, err := client.UserExists(context.Background(), user)
 	if err != nil {
@@ -41,20 +41,20 @@ func CreateUser(c *cli.Context) error {
 }
 
 // UpdateUser updates the password of an existing user in ArangoDB
-func UpdateUser(c *cli.Context) error {
-	logger := getLogger(c)
-	user := c.String("user")
-	pass := c.String("password")
+func UpdateUser(ctx context.Context, cmd *cli.Command) error {
+	logger := getLogger(cmd)
+	user := cmd.String("user")
+	pass := cmd.String("password")
 	client, err := getClient(&ClientParams{
-		Host:     c.GlobalString("host"),
-		Port:     c.GlobalString("port"),
-		User:     c.String("admin-user"),
-		Pass:     c.String("admin-password"),
-		IsSecure: c.GlobalBool("is-secure"),
+		Host:     cmd.String("host"),
+		Port:     cmd.String("port"),
+		User:     cmd.String("admin-user"),
+		Pass:     cmd.String("admin-password"),
+		IsSecure: cmd.Bool("is-secure"),
 	},
 	)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to get client %s", err), 2)
+		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
 
 	ok, err := client.UserExists(context.Background(), user)
@@ -63,7 +63,7 @@ func UpdateUser(c *cli.Context) error {
 	}
 	if !ok {
 		logger.Errorf("user %s does not exist", user)
-		return cli.NewExitError(fmt.Sprintf("user %s does not exist", user), 2)
+		return cli.Exit(fmt.Sprintf("user %s does not exist", user), 2)
 	}
 
 	dbuser, err := client.User(context.Background(), user)
