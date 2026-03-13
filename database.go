@@ -16,9 +16,9 @@ import (
 
 // CreateDatabase creates one or more databases with optional user and grants
 func CreateDatabase(_ context.Context, cmd *cli.Command) error {
+	databases := cmd.StringSlice("database")
 	dbparams := DatabaseParams{
 		WithClient: WithClient{Logger: newLogger(cmd)},
-		Databases:  cmd.StringSlice("database"),
 		Username:   cmd.String("user"),
 		Password:   cmd.String("password"),
 		Grant:      cmd.String("grant"),
@@ -32,17 +32,19 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 			return dbparams
 		}),
 		IOE.Chain(func(p DatabaseParams) IOE.IOEither[error, struct{}] {
-			return F.Pipe3(
-				p.Databases,
-				A.Map(func(dbname string) DatabaseParams {
-					q := p
-					q.Dbname = dbname
-					return q
-				}),
+			return F.Pipe2(
+				F.Pipe1(
+					databases,
+					A.Map(func(dbname string) DatabaseParams {
+						q := p
+						q.Dbname = dbname
+						return q
+					}),
+				),
 				IOE.TraverseArraySeq(createSingleDatabase),
 				IOE.Chain(F.Ternary(
 					func(_ []struct{}) bool { return len(p.Username) > 0 },
-					F.Constant1[[]struct{}](createUserAndGrant(p)),
+					F.Constant1[[]struct{}](createUserAndGrant(p, databases)),
 					F.Constant1[[]struct{}](IOE.Of[error](struct{}{})),
 				)),
 			)
@@ -95,7 +97,7 @@ func createDatabase(p DatabaseParams) IOE.IOEither[error, struct{}] {
 }
 
 // createUserAndGrant creates a user if they don't exist, then grants access to all databases
-func createUserAndGrant(p DatabaseParams) IOE.IOEither[error, struct{}] {
+func createUserAndGrant(p DatabaseParams, databases []string) IOE.IOEither[error, struct{}] {
 	return F.Pipe3(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
@@ -136,13 +138,15 @@ func createUserAndGrant(p DatabaseParams) IOE.IOEither[error, struct{}] {
 			},
 		)),
 		IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
-			return F.Pipe3(
-				p.Databases,
-				A.Map(func(dbname string) UserWithGrant {
-					q := p
-					q.Dbname = dbname
-					return UserWithGrant{Params: q, User: user}
-				}),
+			return F.Pipe2(
+				F.Pipe1(
+					databases,
+					A.Map(func(dbname string) UserWithGrant {
+						q := p
+						q.Dbname = dbname
+						return UserWithGrant{Params: q, User: user}
+					}),
+				),
 				IOE.TraverseArraySeq(grantSingleDatabase),
 				IOE.Map[error](
 					func(_ []struct{}) struct{} { return struct{}{} },
