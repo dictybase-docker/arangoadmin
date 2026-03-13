@@ -35,8 +35,7 @@ type UserParams struct {
 // --- create-database ---
 type DatabaseParams struct {
 	WithClient
-	Databases          []string
-	Dbname             string // current db being processed (set per-iteration)
+	Dbname             string
 	Username, Password string // optional user creation
 	Grant              string
 }

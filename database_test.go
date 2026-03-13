@@ -207,32 +207,34 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 	})
 	require.NoError(err)
 
+	databases := []string{"fptest_grantdb1", "fptest_grantdb2"}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	p := DatabaseParams{
 		WithClient: WithClient{Client: client, Logger: logger},
-		Databases:  []string{"fptest_grantdb1", "fptest_grantdb2"},
 		Username:   "fptest_grantuser",
 		Password:   "pass",
 		Grant:      "rw",
 	}
-	result := toEither(F.Pipe3(
-		p.Databases,
-		A.Map(func(dbname string) DatabaseParams {
-			q := p
-			q.Dbname = dbname
-			return q
-		}),
+	result := toEither(F.Pipe2(
+		F.Pipe1(
+			databases,
+			A.Map(func(dbname string) DatabaseParams {
+				q := p
+				q.Dbname = dbname
+				return q
+			}),
+		),
 		IOE.TraverseArraySeq(createSingleDatabase),
 		IOE.Chain(F.Ternary(
 			func(_ []struct{}) bool { return len(p.Username) > 0 },
-			F.Constant1[[]struct{}](createUserAndGrant(p)),
+			F.Constant1[[]struct{}](createUserAndGrant(p, databases)),
 			F.Constant1[[]struct{}](IOE.Of[error](struct{}{})),
 		)),
 	))
 	require.True(E.IsRight(result), "database pipeline should succeed")
 
 	// Verify databases exist
-	for _, db := range p.Databases {
+	for _, db := range databases {
 		ok, err := client.DatabaseExists(ctx, db)
 		require.NoError(err)
 		require.True(ok, "database %s should exist", db)
