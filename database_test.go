@@ -6,7 +6,10 @@ import (
 	"os"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
+	IOE "github.com/IBM/fp-go/v2/ioeither"
 	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -212,8 +215,21 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 		Password:   "pass",
 		Grant:      "rw",
 	}
-	result := toEither(createDatabasePipeline(p))
-	require.True(E.IsRight(result), "createDatabasePipeline should succeed")
+	result := toEither(F.Pipe3(
+		p.Databases,
+		A.Map(func(dbname string) DatabaseParams {
+			q := p
+			q.Dbname = dbname
+			return q
+		}),
+		IOE.TraverseArraySeq(createSingleDatabase),
+		IOE.Chain(F.Ternary(
+			func(_ []struct{}) bool { return len(p.Username) > 0 },
+			F.Constant1[[]struct{}](createUserAndGrant(p)),
+			F.Constant1[[]struct{}](IOE.Of[error](struct{}{})),
+		)),
+	))
+	require.True(E.IsRight(result), "database pipeline should succeed")
 
 	// Verify databases exist
 	for _, db := range p.Databases {
