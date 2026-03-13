@@ -15,18 +15,18 @@ import (
 
 // createConnection builds the HTTP connection
 func createConnection(
-	p ConnectionParams,
+	params ConnectionParams,
 ) IOE.IOEither[error, driver.Connection] {
 	return IOE.TryCatchError(func() (driver.Connection, error) {
 		return http.NewConnection(http.ConnectionConfig{
 			Endpoints: []string{fmt.Sprintf("%s://%s:%s",
-				F.Pipe1(p.IsSecure, F.Ternary(
+				F.Pipe1(params.IsSecure, F.Ternary(
 					F.Identity[bool],
 					func(_ bool) string { return "https" },
 					func(_ bool) string { return "http" },
 				)),
-				p.Host, p.Port)},
-			TLSConfig: F.Pipe1(p.IsSecure, F.Ternary(
+				params.Host, params.Port)},
+			TLSConfig: F.Pipe1(params.IsSecure, F.Ternary(
 				F.Identity[bool],
 				func(_ bool) *tls.Config { return &tls.Config{InsecureSkipVerify: true} }, // #nosec G402
 				func(_ bool) *tls.Config { return nil },
@@ -51,21 +51,28 @@ func newClientFromConn(wc WithConnection) IOE.IOEither[error, driver.Client] {
 }
 
 // createArangoClient is the main pipeline: connection → driver client
-func createArangoClient(p ConnectionParams) IOE.IOEither[error, driver.Client] {
+func createArangoClient(
+	params ConnectionParams,
+) IOE.IOEither[error, driver.Client] {
 	return F.Pipe4(
-		p,
+		params,
 		createConnection,
-		IOE.MapLeft[driver.Connection](fperrors.OnError("could not connect")),
+		IOE.MapLeft[driver.Connection](
+			fperrors.OnError("could not connect"),
+		),
 		IOE.Map[error](func(conn driver.Connection) WithConnection {
-			return WithConnection{ConnectionParams: p, Conn: conn}
+			return WithConnection{
+				ConnectionParams: params,
+				Conn:             conn,
+			}
 		}),
 		IOE.Chain(newClientFromConn),
 	)
 }
 
 // getClient wraps createArangoClient for backward compat with tests
-func getClient(p *ClientParams) (driver.Client, error) {
-	return toTuple(createArangoClient(*p))
+func getClient(params *ClientParams) (driver.Client, error) {
+	return toTuple(createArangoClient(*params))
 }
 
 // ClientParams is a type alias for backward compat
