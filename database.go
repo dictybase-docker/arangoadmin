@@ -3,52 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	driver "github.com/arangodb/go-driver"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
 )
 
-// Function to find the sum of integers in a given list
-func Sum(numbers []int) int {
-	sum := 0
-	for _, num := range numbers {
-		sum += num
-	}
-	return sum
-}
-
-// Function to find the average of integers in a given list
-func Average(numbers []int) float64 {
-	sum := Sum(numbers)
-	count := len(numbers)
-	return float64(sum) / float64(count)
-}
-
-// Function to find the maximum number in a given list
-func Max(numbers []int) int {
-	res := numbers[0]
-	for _, num := range numbers {
-		if num > res {
-			res = num
-		}
-	}
-	return res
-}
-
-// Function to find the minimum number in a given list
-func Min(numbers []int) int {
-	res := numbers[0]
-	for _, num := range numbers {
-		if num < res {
-			res = num
-		}
-	}
-	return res
-}
-
 func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
-	logger := getLogger(cmd)
+	logger := newLogger(cmd)
 	db := cmd.StringSlice("database")
 	client, err := getClient(&ClientParams{
 		Host:     cmd.String("host"),
@@ -87,7 +49,7 @@ func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
 
 func createUserAndSetDatabaseAccess(
 	ctx context.Context,
-	logger *logrus.Entry,
+	logger *slog.Logger,
 	client driver.Client,
 	db []string,
 	user, pass, grant string,
@@ -105,7 +67,7 @@ func createUserAndSetDatabaseAccess(
 		if err != nil {
 			return fmt.Errorf("error in creating user %s %s", user, err)
 		}
-		logger.Infof("successfully created user %s", user)
+		logger.Info("successfully created user", "user", user)
 
 		for _, n := range db {
 			if err := grantDatabaseAccess(ctx, logger, dbuser, client, n, grant); err != nil {
@@ -117,7 +79,7 @@ func createUserAndSetDatabaseAccess(
 		if err != nil {
 			return fmt.Errorf("error in finding user %s %s", user, err)
 		}
-		logger.Infof("successfully found user %s", user)
+		logger.Info("successfully found user", "user", user)
 
 		for _, n := range db {
 			if err := grantDatabaseAccess(ctx, logger, dbuser, client, n, grant); err != nil {
@@ -131,7 +93,7 @@ func createUserAndSetDatabaseAccess(
 
 func createOrUpdateDatabase(
 	ctx context.Context,
-	logger *logrus.Entry,
+	logger *slog.Logger,
 	client driver.Client,
 	name string,
 ) error {
@@ -147,9 +109,9 @@ func createOrUpdateDatabase(
 				fmt.Sprintf("error in creating database %s %s", name, err), 2,
 			)
 		}
-		logger.Infof("created database %s", name)
+		logger.Info("created database", "database", name)
 	} else {
-		logger.Infof("database %s exists, nothing to create", name)
+		logger.Info("database exists", "database", name)
 	}
 
 	return nil
@@ -157,7 +119,7 @@ func createOrUpdateDatabase(
 
 func grantDatabaseAccess(
 	ctx context.Context,
-	logger *logrus.Entry,
+	logger *slog.Logger,
 	user driver.User,
 	client driver.Client,
 	dbName, grant string,
@@ -180,11 +142,11 @@ func grantDatabaseAccess(
 			err,
 		)
 	}
-	logger.Infof(
-		"successfully granted permission %s existing user %s for database %s",
-		grant,
-		user.Name(),
-		dbName,
+	logger.Info(
+		"successfully granted permission",
+		"grant", grant,
+		"user", user.Name(),
+		"database", dbName,
 	)
 	return nil
 }
