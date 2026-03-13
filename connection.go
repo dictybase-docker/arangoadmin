@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	E "github.com/IBM/fp-go/v2/either"
+	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
-	fperrors "github.com/IBM/fp-go/v2/errors"
 	driver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
 )
@@ -32,14 +32,18 @@ func buildConnectionConfig(p ConnectionParams) http.ConnectionConfig {
 }
 
 // createConnection builds the HTTP connection
-func createConnection(p ConnectionParams) IOE.IOEither[error, driver.Connection] {
+func createConnection(
+	p ConnectionParams,
+) IOE.IOEither[error, driver.Connection] {
 	return IOE.TryCatchError(func() (driver.Connection, error) {
 		return http.NewConnection(buildConnectionConfig(p))
 	})
 }
 
 // newClientFromConn creates a driver client from a connection
-func newClientFromConn(p ConnectionParams) func(driver.Connection) IOE.IOEither[error, driver.Client] {
+func newClientFromConn(
+	p ConnectionParams,
+) func(driver.Connection) IOE.IOEither[error, driver.Client] {
 	return func(conn driver.Connection) IOE.IOEither[error, driver.Client] {
 		return F.Pipe1(
 			IOE.TryCatchError(func() (driver.Client, error) {
@@ -48,16 +52,19 @@ func newClientFromConn(p ConnectionParams) func(driver.Connection) IOE.IOEither[
 					Authentication: driver.BasicAuthentication(p.User, p.Pass),
 				})
 			}),
-			IOE.MapLeft[driver.Client, error, error](fperrors.OnError("could not create client")),
+			IOE.MapLeft[driver.Client](
+				fperrors.OnError("could not create client"),
+			),
 		)
 	}
 }
 
 // createArangoClient is the main pipeline: connection → driver client
 func createArangoClient(p ConnectionParams) IOE.IOEither[error, driver.Client] {
-	return F.Pipe2(
-		createConnection(p),
-		IOE.MapLeft[driver.Connection, error, error](fperrors.OnError("could not connect")),
+	return F.Pipe3(
+		p,
+		createConnection,
+		IOE.MapLeft[driver.Connection](fperrors.OnError("could not connect")),
 		IOE.Chain(newClientFromConn(p)),
 	)
 }
