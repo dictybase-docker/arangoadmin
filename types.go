@@ -13,6 +13,12 @@ type ConnectionParams struct {
 	IsSecure               bool
 }
 
+// WithConnection enriches ConnectionParams with a driver.Connection
+type WithConnection struct {
+	ConnectionParams
+	Conn driver.Connection
+}
+
 // Enriched with ArangoDB client + logger
 type WithClient struct {
 	ConnectionParams
