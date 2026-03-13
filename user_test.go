@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"testing"
 
+	E "github.com/IBM/fp-go/v2/either"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
 
@@ -109,4 +113,59 @@ func TestUpdateUser(t *testing.T) {
 	assert.NoError(err)
 	_, err = clientOld.Database(ctx, dbName)
 	assert.Error(err, "should not be able to access database with old password")
+}
+
+// Phase 1 unit tests for createUserIfNotExists pipeline
+func TestCreateUserIfNotExistsNewUser(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_newuser",
+		Password:   "testpass",
+	}
+	result := toEither(createUserIfNotExists(p))
+	require.True(E.IsRight(result), "createUserIfNotExists should succeed for new user")
+
+	// Verify user was actually created
+	ok, err := client.UserExists(ctx, "fptest_newuser")
+	require.NoError(err)
+	require.True(ok, "user should exist after creation")
+}
+
+func TestCreateUserIfNotExistsIdempotent(t *testing.T) {
+	require := require.New(t)
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_idempotent",
+		Password:   "testpass",
+	}
+	// Create once
+	result1 := toEither(createUserIfNotExists(p))
+	require.True(E.IsRight(result1))
+	// Create again — should succeed (idempotent, logs "exists")
+	result2 := toEither(createUserIfNotExists(p))
+	require.True(E.IsRight(result2))
 }
