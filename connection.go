@@ -41,31 +41,30 @@ func createConnection(
 }
 
 // newClientFromConn creates a driver client from a connection
-func newClientFromConn(
-	p ConnectionParams,
-) func(driver.Connection) IOE.IOEither[error, driver.Client] {
-	return func(conn driver.Connection) IOE.IOEither[error, driver.Client] {
-		return F.Pipe1(
-			IOE.TryCatchError(func() (driver.Client, error) {
-				return driver.NewClient(driver.ClientConfig{
-					Connection:     conn,
-					Authentication: driver.BasicAuthentication(p.User, p.Pass),
-				})
-			}),
-			IOE.MapLeft[driver.Client](
-				fperrors.OnError("could not create client"),
-			),
-		)
-	}
+func newClientFromConn(wc WithConnection) IOE.IOEither[error, driver.Client] {
+	return F.Pipe1(
+		IOE.TryCatchError(func() (driver.Client, error) {
+			return driver.NewClient(driver.ClientConfig{
+				Connection:     wc.Conn,
+				Authentication: driver.BasicAuthentication(wc.User, wc.Pass),
+			})
+		}),
+		IOE.MapLeft[driver.Client](
+			fperrors.OnError("could not create client"),
+		),
+	)
 }
 
 // createArangoClient is the main pipeline: connection → driver client
 func createArangoClient(p ConnectionParams) IOE.IOEither[error, driver.Client] {
-	return F.Pipe3(
+	return F.Pipe4(
 		p,
 		createConnection,
 		IOE.MapLeft[driver.Connection](fperrors.OnError("could not connect")),
-		IOE.Chain(newClientFromConn(p)),
+		IOE.Map[error](func(conn driver.Connection) WithConnection {
+			return WithConnection{ConnectionParams: p, Conn: conn}
+		}),
+		IOE.Chain(newClientFromConn),
 	)
 }
 
