@@ -40,6 +40,12 @@ type DatabaseParams struct {
 	Grant              string
 }
 
+// Intermediate type for optional user creation + grant pipeline
+type UserGrantParams struct {
+	Params    DatabaseParams
+	Databases []string
+}
+
 // Intermediate type for create-database grant pipeline
 type UserWithGrant struct {
 	Params DatabaseParams

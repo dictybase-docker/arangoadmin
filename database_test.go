@@ -225,11 +225,9 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 			}),
 		),
 		IOE.TraverseArraySeq(createSingleDatabase),
-		IOE.Chain(F.Ternary(
-			func(_ []struct{}) bool { return len(p.Username) > 0 },
-			F.Constant1[[]struct{}](createUserAndGrant(p, databases)),
-			F.Constant1[[]struct{}](IOE.Of[error](struct{}{})),
-		)),
+		IOE.Chain(optionalCreateUserAndGrant(UserGrantParams{
+			Params: p, Databases: databases,
+		})),
 	))
 	require.True(E.IsRight(result), "database pipeline should succeed")
 

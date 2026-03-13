@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
 	"github.com/urfave/cli/v3"
 )
@@ -38,52 +39,52 @@ func parseLogLevel(levelStr string) slog.Level {
 }
 
 // Typed logger functions for IOE.ChainFirstIOK
-// Each takes all needed values by parameter and returns IO.IO[struct{}]
+// Each takes all needed values by parameter and returns IO.IO[F.Void]
 
 // nolint:unused // Used in Phase 1 implementation
-func logUserCreated(logger *slog.Logger, username string) IO.IO[struct{}] {
-	return func() struct{} {
+func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("user created", "username", username)
-		return struct{}{}
+		return F.VOID
 	}
 }
 
 // nolint:unused // Used in Phase 1 implementation
-func logUserExists(logger *slog.Logger, username string) IO.IO[struct{}] {
-	return func() struct{} {
+func logUserExists(logger *slog.Logger, username string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("user exists", "username", username)
-		return struct{}{}
+		return F.VOID
 	}
 }
 
 // nolint:unused // Used in Phase 2 implementation
-func logUserUpdated(logger *slog.Logger, username string) IO.IO[struct{}] {
-	return func() struct{} {
+func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("user updated", "username", username)
-		return struct{}{}
+		return F.VOID
 	}
 }
 
 // nolint:unused // Used in Phase 3 implementation
-func logDatabaseCreated(logger *slog.Logger, dbname string) IO.IO[struct{}] {
-	return func() struct{} {
+func logDatabaseCreated(logger *slog.Logger, dbname string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("database created", "database", dbname)
-		return struct{}{}
+		return F.VOID
 	}
 }
 
 // nolint:unused // Used in Phase 3 implementation
-func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[struct{}] {
-	return func() struct{} {
+func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("database exists", "database", dbname)
-		return struct{}{}
+		return F.VOID
 	}
 }
 
 // nolint:unused // Used in Phase 3 implementation
-func logGrantAccess(logger *slog.Logger, username, dbname, grant string) IO.IO[struct{}] {
-	return func() struct{} {
+func logGrantAccess(logger *slog.Logger, username, dbname, grant string) IO.IO[F.Void] {
+	return func() F.Void {
 		logger.Info("database access granted", "username", username, "database", dbname, "grant", grant)
-		return struct{}{}
+		return F.VOID
 	}
 }

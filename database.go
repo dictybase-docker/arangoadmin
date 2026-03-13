@@ -10,6 +10,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	O "github.com/IBM/fp-go/v2/option"
 	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
@@ -31,7 +32,7 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 			dbparams.Client = client
 			return dbparams
 		}),
-		IOE.Chain(func(p DatabaseParams) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(p DatabaseParams) IOE.IOEither[error, F.Void] {
 			return F.Pipe2(
 				F.Pipe1(
 					databases,
@@ -42,23 +43,21 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 					}),
 				),
 				IOE.TraverseArraySeq(createSingleDatabase),
-				IOE.Chain(F.Ternary(
-					func(_ []struct{}) bool { return len(p.Username) > 0 },
-					F.Constant1[[]struct{}](createUserAndGrant(p, databases)),
-					F.Constant1[[]struct{}](IOE.Of[error](struct{}{})),
-				)),
+				IOE.Chain(optionalCreateUserAndGrant(UserGrantParams{
+					Params: p, Databases: databases,
+				})),
 			)
 		}),
 		toEither,
 		E.Fold(
 			F.Identity[error],
-			func(_ struct{}) error { return nil },
+			func(_ F.Void) error { return nil },
 		),
 	)
 }
 
 // createSingleDatabase creates a single database if it doesn't exist, logs the result
-func createSingleDatabase(p DatabaseParams) IOE.IOEither[error, struct{}] {
+func createSingleDatabase(p DatabaseParams) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.DatabaseExists(context.Background(), p.Dbname)
@@ -77,27 +76,45 @@ func createSingleDatabase(p DatabaseParams) IOE.IOEither[error, struct{}] {
 }
 
 // createDatabase creates a single database and logs the result
-func createDatabase(p DatabaseParams) IOE.IOEither[error, struct{}] {
+func createDatabase(p DatabaseParams) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
-		IOE.TryCatchError(func() (struct{}, error) {
+		IOE.TryCatchError(func() (F.Void, error) {
 			_, err := p.Client.CreateDatabase(
 				context.Background(),
 				p.Dbname,
 				nil,
 			)
-			return struct{}{}, err
+			return F.VOID, err
 		}),
-		IOE.MapLeft[struct{}](fperrors.OnError(
+		IOE.MapLeft[F.Void](fperrors.OnError(
 			fmt.Sprintf("error creating database %s", p.Dbname),
 		)),
-		IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
+		IOE.ChainFirstIOK[error](func(_ F.Void) IO.IO[F.Void] {
 			return logDatabaseCreated(p.Logger, p.Dbname)
 		}),
 	)
 }
 
+// optionalCreateUserAndGrant returns a Kleisli arrow that creates a user and
+// grants access if Username is non-empty, otherwise succeeds with F.VOID
+func optionalCreateUserAndGrant(g UserGrantParams) func([]F.Void) IOE.IOEither[error, F.Void] {
+	return F.Constant1[[]F.Void](F.Pipe2(
+		g.Params.Username,
+		O.FromPredicate(func(s string) bool { return len(s) > 0 }),
+		O.Fold(
+			func() IOE.IOEither[error, F.Void] {
+				return IOE.Of[error](F.VOID)
+			},
+			func(_ string) IOE.IOEither[error, F.Void] {
+				return createUserAndGrant(g)
+			},
+		),
+	))
+}
+
 // createUserAndGrant creates a user if they don't exist, then grants access to all databases
-func createUserAndGrant(p DatabaseParams, databases []string) IOE.IOEither[error, struct{}] {
+func createUserAndGrant(g UserGrantParams) IOE.IOEither[error, F.Void] {
+	p := g.Params
 	return F.Pipe3(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
@@ -130,17 +147,17 @@ func createUserAndGrant(p DatabaseParams, databases []string) IOE.IOEither[error
 						fmt.Sprintf("error creating user %s", p.Username),
 					)),
 					IOE.ChainFirstIOK[error](
-						func(_ driver.User) IO.IO[struct{}] {
+						func(_ driver.User) IO.IO[F.Void] {
 							return logUserCreated(p.Logger, p.Username)
 						},
 					),
 				)
 			},
 		)),
-		IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(user driver.User) IOE.IOEither[error, F.Void] {
 			return F.Pipe2(
 				F.Pipe1(
-					databases,
+					g.Databases,
 					A.Map(func(dbname string) UserWithGrant {
 						q := p
 						q.Dbname = dbname
@@ -148,16 +165,14 @@ func createUserAndGrant(p DatabaseParams, databases []string) IOE.IOEither[error
 					}),
 				),
 				IOE.TraverseArraySeq(grantSingleDatabase),
-				IOE.Map[error](
-					func(_ []struct{}) struct{} { return struct{}{} },
-				),
+				IOE.MapTo[error, []F.Void](F.VOID),
 			)
 		}),
 	)
 }
 
 // grantSingleDatabase grants access to a single database for a user
-func grantSingleDatabase(u UserWithGrant) IOE.IOEither[error, struct{}] {
+func grantSingleDatabase(u UserWithGrant) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.Database, error) {
 			return u.Params.Client.Database(
@@ -168,22 +183,22 @@ func grantSingleDatabase(u UserWithGrant) IOE.IOEither[error, struct{}] {
 		IOE.MapLeft[driver.Database](fperrors.OnError(
 			fmt.Sprintf("error getting database %s", u.Params.Dbname),
 		)),
-		IOE.Chain(func(db driver.Database) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(db driver.Database) IOE.IOEither[error, F.Void] {
 			return F.Pipe2(
-				IOE.TryCatchError(func() (struct{}, error) {
-					return struct{}{}, u.User.SetDatabaseAccess(
+				IOE.TryCatchError(func() (F.Void, error) {
+					return F.VOID, u.User.SetDatabaseAccess(
 						context.Background(),
 						db,
 						getGrant(u.Params.Grant),
 					)
 				}),
-				IOE.MapLeft[struct{}](fperrors.OnError(
+				IOE.MapLeft[F.Void](fperrors.OnError(
 					fmt.Sprintf(
 						"error granting access to database %s",
 						u.Params.Dbname,
 					),
 				)),
-				IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
+				IOE.ChainFirstIOK[error](func(_ F.Void) IO.IO[F.Void] {
 					return logGrantAccess(
 						u.Params.Logger,
 						u.User.Name(),

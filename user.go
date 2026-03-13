@@ -22,7 +22,7 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 
 	result := F.Pipe1(
 		createArangoClient(connParams),
-		IOE.Chain(func(client driver.Client) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(client driver.Client) IOE.IOEither[error, F.Void] {
 			return createUserIfNotExists(UserParams{
 				WithClient: WithClient{Client: client, Logger: logger},
 				Username:   username,
@@ -34,12 +34,12 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 	either := toEither(result)
 	return E.Fold(
 		F.Identity[error],
-		func(_ struct{}) error { return nil },
+		func(_ F.Void) error { return nil },
 	)(either)
 }
 
 // createUserIfNotExists creates a user if they don't exist, otherwise logs that they exist
-func createUserIfNotExists(p UserParams) IOE.IOEither[error, struct{}] {
+func createUserIfNotExists(p UserParams) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
@@ -47,19 +47,19 @@ func createUserIfNotExists(p UserParams) IOE.IOEither[error, struct{}] {
 		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
 		IOE.Chain(F.Ternary(
 			F.Identity[bool],
-			func(_ bool) IOE.IOEither[error, struct{}] {
+			func(_ bool) IOE.IOEither[error, F.Void] {
 				return IOE.FromIO[error](logUserExists(p.Logger, p.Username))
 			},
-			func(_ bool) IOE.IOEither[error, struct{}] {
+			func(_ bool) IOE.IOEither[error, F.Void] {
 				return F.Pipe3(
 					IOE.TryCatchError(func() (driver.User, error) {
 						return p.Client.CreateUser(context.Background(), p.Username, &driver.UserOptions{Password: p.Password})
 					}),
 					IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error creating user %s", p.Username))),
-					IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[struct{}] {
+					IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[F.Void] {
 						return logUserCreated(p.Logger, p.Username)
 					}),
-					IOE.Map[error](func(_ driver.User) struct{} { return struct{}{} }),
+					IOE.MapTo[error, driver.User](F.VOID),
 				)
 			},
 		)),
@@ -75,7 +75,7 @@ func UpdateUser(_ context.Context, cmd *cli.Command) error {
 
 	result := F.Pipe1(
 		createArangoClient(connParams),
-		IOE.Chain(func(client driver.Client) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(client driver.Client) IOE.IOEither[error, F.Void] {
 			return updateUserPipeline(UserParams{
 				WithClient: WithClient{Client: client, Logger: logger},
 				Username:   username,
@@ -87,12 +87,12 @@ func UpdateUser(_ context.Context, cmd *cli.Command) error {
 	either := toEither(result)
 	return E.Fold(
 		F.Identity[error],
-		func(_ struct{}) error { return nil },
+		func(_ F.Void) error { return nil },
 	)(either)
 }
 
 // updateUserPipeline updates a user's password if they exist
-func updateUserPipeline(p UserParams) IOE.IOEither[error, struct{}] {
+func updateUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
 	return F.Pipe4(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
@@ -110,13 +110,13 @@ func updateUserPipeline(p UserParams) IOE.IOEither[error, struct{}] {
 				IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error fetching user %s", p.Username))),
 			)
 		}),
-		IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
+		IOE.Chain(func(user driver.User) IOE.IOEither[error, F.Void] {
 			return F.Pipe2(
-				IOE.TryCatchError(func() (struct{}, error) {
-					return struct{}{}, user.Update(context.Background(), driver.UserOptions{Password: p.Password})
+				IOE.TryCatchError(func() (F.Void, error) {
+					return F.VOID, user.Update(context.Background(), driver.UserOptions{Password: p.Password})
 				}),
-				IOE.MapLeft[struct{}, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", p.Username))),
-				IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
+				IOE.MapLeft[F.Void, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", p.Username))),
+				IOE.ChainFirstIOK[error](func(_ F.Void) IO.IO[F.Void] {
 					return logUserUpdated(p.Logger, p.Username)
 				}),
 			)
