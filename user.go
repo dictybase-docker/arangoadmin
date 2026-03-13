@@ -65,44 +65,61 @@ func createUserIfNotExists(p UserParams) IOE.IOEither[error, struct{}] {
 }
 
 // UpdateUser updates the password of an existing user in ArangoDB
-func UpdateUser(ctx context.Context, cmd *cli.Command) error {
+func UpdateUser(_ context.Context, cmd *cli.Command) error {
 	logger := newLogger(cmd)
-	user := cmd.String("user")
-	pass := cmd.String("password")
-	client, err := getClient(&ClientParams{
-		Host:     cmd.String("host"),
-		Port:     cmd.String("port"),
-		User:     cmd.String("admin-user"),
-		Pass:     cmd.String("admin-password"),
-		IsSecure: cmd.Bool("is-secure"),
-	},
+	connParams := connParamsFromCmd(cmd)
+	username := cmd.String("user")
+	password := cmd.String("password")
+
+	result := F.Pipe1(
+		createArangoClient(connParams),
+		IOE.Chain(func(client driver.Client) IOE.IOEither[error, struct{}] {
+			return updateUserPipeline(UserParams{
+				WithClient: WithClient{Client: client, Logger: logger},
+				Username:   username,
+				Password:   password,
+			})
+		}),
 	)
-	if err != nil {
-		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
-	}
 
-	ok, err := client.UserExists(ctx, user)
-	if err != nil {
-		return fmt.Errorf("error in checking for user %s: %s", user, err)
-	}
-	if !ok {
-		logger.Error("user does not exist", "user", user)
-		return cli.Exit(fmt.Sprintf("user %s does not exist", user), 2)
-	}
+	either := toEither(result)
+	return E.Fold(
+		F.Identity[error],
+		func(_ struct{}) error { return nil },
+	)(either)
+}
 
-	dbuser, err := client.User(ctx, user)
-	if err != nil {
-		return fmt.Errorf("error fetching user %s: %s", user, err)
-	}
-
-	err = dbuser.Update(ctx, driver.UserOptions{Password: pass})
-
-	if err != nil {
-		return fmt.Errorf("error updating user %s: %s", user, err)
-	}
-
-	logger.Info("successfully updated password for user", "user", user)
-	return nil
+// updateUserPipeline updates a user's password if they exist
+// nolint:unused // Used by UpdateUser action
+func updateUserPipeline(p UserParams) IOE.IOEither[error, struct{}] {
+	return F.Pipe2(
+		IOE.TryCatchError(func() (bool, error) {
+			return p.Client.UserExists(context.Background(), p.Username)
+		}),
+		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
+		IOE.Chain(func(exists bool) IOE.IOEither[error, struct{}] {
+			if !exists {
+				return IOE.Left[struct{}](fmt.Errorf("user %s does not exist", p.Username))
+			}
+			return F.Pipe2(
+				IOE.TryCatchError(func() (driver.User, error) {
+					return p.Client.User(context.Background(), p.Username)
+				}),
+				IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error fetching user %s", p.Username))),
+				IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
+					return F.Pipe2(
+						IOE.TryCatchError(func() (struct{}, error) {
+							return struct{}{}, user.Update(context.Background(), driver.UserOptions{Password: p.Password})
+						}),
+						IOE.MapLeft[struct{}, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", p.Username))),
+						IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
+							return logUserUpdated(p.Logger, p.Username)
+						}),
+					)
+				}),
+			)
+		}),
+	)
 }
 
 func getGrant(g string) driver.Grant {
