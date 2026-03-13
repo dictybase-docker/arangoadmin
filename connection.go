@@ -13,30 +13,25 @@ import (
 	"github.com/arangodb/go-driver/http"
 )
 
-// buildConnectionConfig constructs an HTTP connection config from params (pure, no if statements)
-func buildConnectionConfig(p ConnectionParams) http.ConnectionConfig {
-	return http.ConnectionConfig{
-		Endpoints: []string{fmt.Sprintf("%s://%s:%s",
-			F.Pipe1(p.IsSecure, F.Ternary(
-				F.Identity[bool],
-				func(_ bool) string { return "https" },
-				func(_ bool) string { return "http" },
-			)),
-			p.Host, p.Port)},
-		TLSConfig: F.Pipe1(p.IsSecure, F.Ternary(
-			F.Identity[bool],
-			func(_ bool) *tls.Config { return &tls.Config{InsecureSkipVerify: true} }, // #nosec G402
-			func(_ bool) *tls.Config { return nil },
-		)),
-	}
-}
-
 // createConnection builds the HTTP connection
 func createConnection(
 	p ConnectionParams,
 ) IOE.IOEither[error, driver.Connection] {
 	return IOE.TryCatchError(func() (driver.Connection, error) {
-		return http.NewConnection(buildConnectionConfig(p))
+		return http.NewConnection(http.ConnectionConfig{
+			Endpoints: []string{fmt.Sprintf("%s://%s:%s",
+				F.Pipe1(p.IsSecure, F.Ternary(
+					F.Identity[bool],
+					func(_ bool) string { return "https" },
+					func(_ bool) string { return "http" },
+				)),
+				p.Host, p.Port)},
+			TLSConfig: F.Pipe1(p.IsSecure, F.Ternary(
+				F.Identity[bool],
+				func(_ bool) *tls.Config { return &tls.Config{InsecureSkipVerify: true} }, // #nosec G402
+				func(_ bool) *tls.Config { return nil },
+			)),
+		})
 	})
 }
 
