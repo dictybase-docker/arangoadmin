@@ -13,24 +13,32 @@ import (
 	"github.com/arangodb/go-driver/http"
 )
 
+// buildConnectionConfig constructs an HTTP connection config from params (pure, no if statements)
+func buildConnectionConfig(p ConnectionParams) http.ConnectionConfig {
+	return http.ConnectionConfig{
+		Endpoints: []string{fmt.Sprintf("%s://%s:%s",
+			F.Pipe1(p.IsSecure, F.Ternary(
+				F.Identity[bool],
+				func(_ bool) string { return "https" },
+				func(_ bool) string { return "http" },
+			)),
+			p.Host, p.Port)},
+		TLSConfig: F.Pipe1(p.IsSecure, F.Ternary(
+			F.Identity[bool],
+			func(_ bool) *tls.Config { return &tls.Config{InsecureSkipVerify: true} }, // #nosec G402
+			func(_ bool) *tls.Config { return nil },
+		)),
+	}
+}
+
 // createConnection builds the HTTP connection
 func createConnection(p ConnectionParams) IOE.IOEither[error, driver.Connection] {
 	return IOE.TryCatchError(func() (driver.Connection, error) {
-		scheme := "http"
-		if p.IsSecure {
-			scheme = "https"
-		}
-		cfg := http.ConnectionConfig{
-			Endpoints: []string{fmt.Sprintf("%s://%s:%s", scheme, p.Host, p.Port)},
-		}
-		if p.IsSecure {
-			cfg.TLSConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402
-		}
-		return http.NewConnection(cfg)
+		return http.NewConnection(buildConnectionConfig(p))
 	})
 }
 
-// newClientFromConn creates a driver client from a connection (extracted helper — hookify: no nested closures)
+// newClientFromConn creates a driver client from a connection
 func newClientFromConn(p ConnectionParams) func(driver.Connection) IOE.IOEither[error, driver.Client] {
 	return func(conn driver.Connection) IOE.IOEither[error, driver.Client] {
 		return F.Pipe1(
@@ -45,7 +53,7 @@ func newClientFromConn(p ConnectionParams) func(driver.Connection) IOE.IOEither[
 	}
 }
 
-// createArangoClient is the main pipeline: connection → driver client (flat, no nested closures)
+// createArangoClient is the main pipeline: connection → driver client
 func createArangoClient(p ConnectionParams) IOE.IOEither[error, driver.Client] {
 	return F.Pipe2(
 		createConnection(p),
@@ -54,7 +62,7 @@ func createArangoClient(p ConnectionParams) IOE.IOEither[error, driver.Client] {
 	)
 }
 
-// Backward compat for tests
+// getClient wraps createArangoClient for backward compat with tests
 func getClient(p *ClientParams) (driver.Client, error) {
 	return toTuple(createArangoClient(*p))
 }

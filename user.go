@@ -39,28 +39,30 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 }
 
 // createUserIfNotExists creates a user if they don't exist, otherwise logs that they exist
-// nolint:unused // Used by CreateUser action
 func createUserIfNotExists(p UserParams) IOE.IOEither[error, struct{}] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
 		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
-		IOE.Chain(func(exists bool) IOE.IOEither[error, struct{}] {
-			if exists {
+		IOE.Chain(F.Ternary(
+			F.Identity[bool],
+			func(_ bool) IOE.IOEither[error, struct{}] {
 				return IOE.FromIO[error](logUserExists(p.Logger, p.Username))
-			}
-			return F.Pipe3(
-				IOE.TryCatchError(func() (driver.User, error) {
-					return p.Client.CreateUser(context.Background(), p.Username, &driver.UserOptions{Password: p.Password})
-				}),
-				IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error creating user %s", p.Username))),
-				IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[struct{}] {
-					return logUserCreated(p.Logger, p.Username)
-				}),
-				IOE.Map[error](func(_ driver.User) struct{} { return struct{}{} }),
-			)
-		}),
+			},
+			func(_ bool) IOE.IOEither[error, struct{}] {
+				return F.Pipe3(
+					IOE.TryCatchError(func() (driver.User, error) {
+						return p.Client.CreateUser(context.Background(), p.Username, &driver.UserOptions{Password: p.Password})
+					}),
+					IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error creating user %s", p.Username))),
+					IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[struct{}] {
+						return logUserCreated(p.Logger, p.Username)
+					}),
+					IOE.Map[error](func(_ driver.User) struct{} { return struct{}{} }),
+				)
+			},
+		)),
 	)
 }
 
@@ -90,47 +92,50 @@ func UpdateUser(_ context.Context, cmd *cli.Command) error {
 }
 
 // updateUserPipeline updates a user's password if they exist
-// nolint:unused // Used by UpdateUser action
 func updateUserPipeline(p UserParams) IOE.IOEither[error, struct{}] {
-	return F.Pipe2(
+	return F.Pipe4(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
 		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
-		IOE.Chain(func(exists bool) IOE.IOEither[error, struct{}] {
-			if !exists {
-				return IOE.Left[struct{}](fmt.Errorf("user %s does not exist", p.Username))
-			}
-			return F.Pipe2(
+		IOE.ChainEitherK(E.FromPredicate(
+			F.Identity[bool],
+			func(_ bool) error { return fmt.Errorf("user %s does not exist", p.Username) },
+		)),
+		IOE.Chain(func(_ bool) IOE.IOEither[error, driver.User] {
+			return F.Pipe1(
 				IOE.TryCatchError(func() (driver.User, error) {
 					return p.Client.User(context.Background(), p.Username)
 				}),
 				IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error fetching user %s", p.Username))),
-				IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
-					return F.Pipe2(
-						IOE.TryCatchError(func() (struct{}, error) {
-							return struct{}{}, user.Update(context.Background(), driver.UserOptions{Password: p.Password})
-						}),
-						IOE.MapLeft[struct{}, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", p.Username))),
-						IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
-							return logUserUpdated(p.Logger, p.Username)
-						}),
-					)
+			)
+		}),
+		IOE.Chain(func(user driver.User) IOE.IOEither[error, struct{}] {
+			return F.Pipe2(
+				IOE.TryCatchError(func() (struct{}, error) {
+					return struct{}{}, user.Update(context.Background(), driver.UserOptions{Password: p.Password})
+				}),
+				IOE.MapLeft[struct{}, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", p.Username))),
+				IOE.ChainFirstIOK[error](func(_ struct{}) IO.IO[struct{}] {
+					return logUserUpdated(p.Logger, p.Username)
 				}),
 			)
 		}),
 	)
 }
 
+// getGrant converts a grant string to the driver.Grant type
 func getGrant(g string) driver.Grant {
-	var grnt driver.Grant
-	switch g {
-	case "rw":
-		grnt = driver.GrantReadWrite
-	case "ro":
-		grnt = driver.GrantReadOnly
-	default:
-		grnt = driver.GrantNone
-	}
-	return grnt
+	return F.Pipe1(
+		g,
+		F.Ternary(
+			func(s string) bool { return s == "rw" },
+			func(_ string) driver.Grant { return driver.GrantReadWrite },
+			F.Ternary(
+				func(s string) bool { return s == "ro" },
+				func(_ string) driver.Grant { return driver.GrantReadOnly },
+				func(_ string) driver.Grant { return driver.GrantNone },
+			),
+		),
+	)
 }
