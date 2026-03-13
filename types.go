@@ -26,14 +26,6 @@ type WithClient struct {
 	Logger *slog.Logger
 }
 
-// HOF setter for IOE.Bind (hookify: prefer HOF over F.Curry2)
-// nolint:unused // Used in Phase 1-3 implementation
-func setClient(c driver.Client) func(ConnectionParams) WithClient {
-	return func(p ConnectionParams) WithClient {
-		return WithClient{ConnectionParams: p, Client: c}
-	}
-}
-
 // --- create-user / update-user ---
 type UserParams struct {
 	WithClient
