@@ -10,7 +10,7 @@ import (
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
 func CreateUser(ctx context.Context, cmd *cli.Command) error {
-	logger := getLogger(cmd)
+	logger := newLogger(cmd)
 	user := cmd.String("user")
 	pass := cmd.String("password")
 	client, err := getClient(&ClientParams{
@@ -29,20 +29,20 @@ func CreateUser(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("error in checking for user %s: %s", user, err)
 	}
 	if ok {
-		logger.Infof("user %s exists, nothing to create", user)
+		logger.Info("user exists, nothing to create", "user", user)
 		return nil
 	}
 	_, err = client.CreateUser(ctx, user, &driver.UserOptions{Password: pass})
 	if err != nil {
 		return fmt.Errorf("error in creating user %s: %s", user, err)
 	}
-	logger.Infof("successfully created user %s", user)
+	logger.Info("successfully created user", "user", user)
 	return nil
 }
 
 // UpdateUser updates the password of an existing user in ArangoDB
 func UpdateUser(ctx context.Context, cmd *cli.Command) error {
-	logger := getLogger(cmd)
+	logger := newLogger(cmd)
 	user := cmd.String("user")
 	pass := cmd.String("password")
 	client, err := getClient(&ClientParams{
@@ -62,7 +62,7 @@ func UpdateUser(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("error in checking for user %s: %s", user, err)
 	}
 	if !ok {
-		logger.Errorf("user %s does not exist", user)
+		logger.Error("user does not exist", "user", user)
 		return cli.Exit(fmt.Sprintf("user %s does not exist", user), 2)
 	}
 
@@ -77,7 +77,7 @@ func UpdateUser(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("error updating user %s: %s", user, err)
 	}
 
-	logger.Infof("successfully updated password for user %s", user)
+	logger.Info("successfully updated password for user", "user", user)
 	return nil
 }
 
