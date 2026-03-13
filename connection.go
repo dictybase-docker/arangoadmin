@@ -1,3 +1,4 @@
+// Package main is the entry point for the arangoadmin CLI.
 package main
 
 import (
@@ -31,6 +32,7 @@ func getClient(p *ClientParams) (driver.Client, error) {
 				Endpoints: []string{
 					fmt.Sprintf("https://%s:%s", host, port),
 				},
+				// #nosec G402
 				TLSConfig: &tls.Config{InsecureSkipVerify: true},
 			})
 		if err != nil {

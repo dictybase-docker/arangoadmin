@@ -24,19 +24,19 @@ func CreateUser(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
-	ok, err := client.UserExists(context.Background(), user)
+	ok, err := client.UserExists(ctx, user)
 	if err != nil {
-		return fmt.Errorf("error in checking for user %s", err)
+		return fmt.Errorf("error in checking for user %s: %s", user, err)
 	}
 	if ok {
-		logger.Infof("user %s already exists", user)
+		logger.Infof("user %s exists, nothing to create", user)
 		return nil
 	}
-	u, err := client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass})
+	_, err = client.CreateUser(ctx, user, &driver.UserOptions{Password: pass})
 	if err != nil {
-		return fmt.Errorf("error in creating user %s %s", user, err)
+		return fmt.Errorf("error in creating user %s: %s", user, err)
 	}
-	logger.Infof("successfully created user %s", u.Name())
+	logger.Infof("successfully created user %s", user)
 	return nil
 }
 
@@ -57,7 +57,7 @@ func UpdateUser(ctx context.Context, cmd *cli.Command) error {
 		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
 
-	ok, err := client.UserExists(context.Background(), user)
+	ok, err := client.UserExists(ctx, user)
 	if err != nil {
 		return fmt.Errorf("error in checking for user %s: %s", user, err)
 	}
@@ -66,12 +66,13 @@ func UpdateUser(ctx context.Context, cmd *cli.Command) error {
 		return cli.Exit(fmt.Sprintf("user %s does not exist", user), 2)
 	}
 
-	dbuser, err := client.User(context.Background(), user)
+	dbuser, err := client.User(ctx, user)
 	if err != nil {
 		return fmt.Errorf("error fetching user %s: %s", user, err)
 	}
 
-	err = dbuser.Update(context.Background(), driver.UserOptions{Password: pass})
+	err = dbuser.Update(ctx, driver.UserOptions{Password: pass})
+
 	if err != nil {
 		return fmt.Errorf("error updating user %s: %s", user, err)
 	}
