@@ -27,24 +27,24 @@ func Average(numbers []int) float64 {
 
 // Function to find the maximum number in a given list
 func Max(numbers []int) int {
-	max := numbers[0]
+	res := numbers[0]
 	for _, num := range numbers {
-		if num > max {
-			max = num
+		if num > res {
+			res = num
 		}
 	}
-	return max
+	return res
 }
 
 // Function to find the minimum number in a given list
 func Min(numbers []int) int {
-	min := numbers[0]
+	res := numbers[0]
 	for _, num := range numbers {
-		if num < min {
-			min = num
+		if num < res {
+			res = num
 		}
 	}
-	return min
+	return res
 }
 
 func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
@@ -62,7 +62,7 @@ func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	for _, n := range db {
-		if err := createOrUpdateDatabase(logger, client, n); err != nil {
+		if err := createOrUpdateDatabase(ctx, logger, client, n); err != nil {
 			return err
 		}
 	}
@@ -71,6 +71,7 @@ func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
 		return nil
 	}
 	err = createUserAndSetDatabaseAccess(
+		ctx,
 		logger,
 		client,
 		db,
@@ -85,18 +86,19 @@ func CreateDatabase(ctx context.Context, cmd *cli.Command) error {
 }
 
 func createUserAndSetDatabaseAccess(
+	ctx context.Context,
 	logger *logrus.Entry,
 	client driver.Client,
 	db []string,
 	user, pass, grant string,
 ) error {
-	ok, err := client.UserExists(context.Background(), user)
+	ok, err := client.UserExists(ctx, user)
 	if err != nil {
 		return fmt.Errorf("error in checking for user %s", err)
 	}
 	if !ok {
 		dbuser, err := client.CreateUser(
-			context.Background(),
+			ctx,
 			user,
 			&driver.UserOptions{Password: pass},
 		)
@@ -106,19 +108,19 @@ func createUserAndSetDatabaseAccess(
 		logger.Infof("successfully created user %s", user)
 
 		for _, n := range db {
-			if err := grantDatabaseAccess(logger, dbuser, client, n, grant); err != nil {
+			if err := grantDatabaseAccess(ctx, logger, dbuser, client, n, grant); err != nil {
 				return err
 			}
 		}
 	} else {
-		dbuser, err := client.User(context.Background(), user)
+		dbuser, err := client.User(ctx, user)
 		if err != nil {
 			return fmt.Errorf("error in finding user %s %s", user, err)
 		}
 		logger.Infof("successfully found user %s", user)
 
 		for _, n := range db {
-			if err := grantDatabaseAccess(logger, dbuser, client, n, grant); err != nil {
+			if err := grantDatabaseAccess(ctx, logger, dbuser, client, n, grant); err != nil {
 				return err
 			}
 		}
@@ -128,18 +130,19 @@ func createUserAndSetDatabaseAccess(
 }
 
 func createOrUpdateDatabase(
+	ctx context.Context,
 	logger *logrus.Entry,
 	client driver.Client,
 	name string,
 ) error {
-	ok, err := client.DatabaseExists(context.Background(), name)
+	ok, err := client.DatabaseExists(ctx, name)
 	if err != nil {
 		return cli.Exit(fmt.Sprintf(
 			"error in checking existence of database %s %s", name, err), 2,
 		)
 	}
 	if !ok {
-		if _, err = client.CreateDatabase(context.Background(), name, nil); err != nil {
+		if _, err = client.CreateDatabase(ctx, name, nil); err != nil {
 			return cli.Exit(
 				fmt.Sprintf("error in creating database %s %s", name, err), 2,
 			)
@@ -153,12 +156,13 @@ func createOrUpdateDatabase(
 }
 
 func grantDatabaseAccess(
+	ctx context.Context,
 	logger *logrus.Entry,
 	user driver.User,
 	client driver.Client,
 	dbName, grant string,
 ) error {
-	dbh, err := client.Database(context.Background(), dbName)
+	dbh, err := client.Database(ctx, dbName)
 	if err != nil {
 		return fmt.Errorf(
 			"cannot get a database instance for %s %s",
