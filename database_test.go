@@ -125,8 +125,9 @@ func TestCreateSingleDatabaseNew(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	p := DatabaseParams{
 		WithClient: WithClient{Client: client, Logger: logger},
+		Dbname:     "fptest_newdb",
 	}
-	result := toEither(createSingleDatabase(p)("fptest_newdb"))
+	result := toEither(createSingleDatabase(p))
 	require.True(E.IsRight(result), "createSingleDatabase should succeed for new database")
 
 	ok, err := client.DatabaseExists(ctx, "fptest_newdb")
@@ -149,10 +150,11 @@ func TestCreateSingleDatabaseIdempotent(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	p := DatabaseParams{
 		WithClient: WithClient{Client: client, Logger: logger},
+		Dbname:     "fptest_idempotentdb",
 	}
-	r1 := toEither(createSingleDatabase(p)("fptest_idempotentdb"))
+	r1 := toEither(createSingleDatabase(p))
 	require.True(E.IsRight(r1))
-	r2 := toEither(createSingleDatabase(p)("fptest_idempotentdb"))
+	r2 := toEither(createSingleDatabase(p))
 	require.True(E.IsRight(r2), "creating same database twice should succeed (idempotent)")
 }
 
@@ -181,10 +183,11 @@ func TestGrantSingleDatabase(t *testing.T) {
 			WithClient: WithClient{Client: client, Logger: logger},
 			Grant:      "rw",
 			Username:   "fptest_grantusr",
+			Dbname:     "fptest_grantdb",
 		},
 		User: user,
 	}
-	result := toEither(grantSingleDatabase(uwg)("fptest_grantdb"))
+	result := toEither(grantSingleDatabase(uwg))
 	require.True(E.IsRight(result), "grantSingleDatabase should succeed")
 }
 
