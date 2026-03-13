@@ -145,8 +145,14 @@ func updateExistingUser(u UserForUpdate) IOE.IOEither[error, F.Void] {
 			return F.VOID, u.User.Update(context.Background(), driver.UserOptions{Password: u.Params.Password})
 		}),
 		IOE.MapLeft[F.Void, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", u.Params.Username))),
-		IOE.ChainFirstIOK[error](F.Constant1[F.Void](logUserUpdated(u.Params.Logger, u.Params.Username))),
+		IOE.ChainFirstIOK[error](logUserUpdatedStep(u)),
 	)
+}
+
+func logUserUpdatedStep(u UserForUpdate) func(F.Void) IO.IO[F.Void] {
+	return func(_ F.Void) IO.IO[F.Void] {
+		return logUserUpdated(u.Params.Logger, u.Params.Username)
+	}
 }
 
 // getGrant converts a grant string to the driver.Grant type
