@@ -45,7 +45,11 @@ func createUserIfNotExists(p UserParams) IOE.IOEither[error, F.Void] {
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
-		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
+		IOE.MapLeft[bool](
+			fperrors.OnError(
+				fmt.Sprintf("error checking for user %s", p.Username),
+			),
+		),
 		IOE.Chain(F.Ternary(
 			F.Identity[bool],
 			func(_ bool) IOE.IOEither[error, F.Void] {
@@ -54,9 +58,17 @@ func createUserIfNotExists(p UserParams) IOE.IOEither[error, F.Void] {
 			func(_ bool) IOE.IOEither[error, F.Void] {
 				return F.Pipe3(
 					IOE.TryCatchError(func() (driver.User, error) {
-						return p.Client.CreateUser(context.Background(), p.Username, &driver.UserOptions{Password: p.Password})
+						return p.Client.CreateUser(
+							context.Background(),
+							p.Username,
+							&driver.UserOptions{Password: p.Password},
+						)
 					}),
-					IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error creating user %s", p.Username))),
+					IOE.MapLeft[driver.User](
+						fperrors.OnError(
+							fmt.Sprintf("error creating user %s", p.Username),
+						),
+					),
 					IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[F.Void] {
 						return logUserCreated(p.Logger, p.Username)
 					}),
@@ -110,7 +122,11 @@ func checkUserExists(p UserParams) IOE.IOEither[error, UserParams] {
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
-		IOE.MapLeft[bool, error, error](fperrors.OnError(fmt.Sprintf("error checking for user %s", p.Username))),
+		IOE.MapLeft[bool](
+			fperrors.OnError(
+				fmt.Sprintf("error checking for user %s", p.Username),
+			),
+		),
 		IOE.ChainEitherK(E.FromPredicate(
 			F.Identity[bool],
 			func(_ bool) error { return fmt.Errorf("user %s does not exist", p.Username) },
@@ -124,7 +140,9 @@ func getExistingUser(p UserParams) IOE.IOEither[error, UserForUpdate] {
 		IOE.TryCatchError(func() (driver.User, error) {
 			return p.Client.User(context.Background(), p.Username)
 		}),
-		IOE.MapLeft[driver.User, error, error](fperrors.OnError(fmt.Sprintf("error fetching user %s", p.Username))),
+		IOE.MapLeft[driver.User](
+			fperrors.OnError(fmt.Sprintf("error fetching user %s", p.Username)),
+		),
 		IOE.Map[error](withExistingUser(p)),
 	)
 }
@@ -138,9 +156,16 @@ func withExistingUser(p UserParams) func(driver.User) UserForUpdate {
 func updateExistingUser(u UserForUpdate) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (F.Void, error) {
-			return F.VOID, u.User.Update(context.Background(), driver.UserOptions{Password: u.Params.Password})
+			return F.VOID, u.User.Update(
+				context.Background(),
+				driver.UserOptions{Password: u.Params.Password},
+			)
 		}),
-		IOE.MapLeft[F.Void, error, error](fperrors.OnError(fmt.Sprintf("error updating user %s", u.Params.Username))),
+		IOE.MapLeft[F.Void](
+			fperrors.OnError(
+				fmt.Sprintf("error updating user %s", u.Params.Username),
+			),
+		),
 		IOE.ChainFirstIOK[error](logUserUpdatedStep(u)),
 	)
 }
