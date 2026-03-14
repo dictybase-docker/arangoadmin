@@ -111,7 +111,7 @@ func TestCreateDatabaseWithUser(t *testing.T) {
 	assert.True(ok, "database should exist")
 }
 
-// Phase 3 unit tests for database pipelines
+// Unit tests for database pipelines
 func TestCreateSingleDatabaseNew(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()

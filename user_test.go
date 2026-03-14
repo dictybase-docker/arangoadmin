@@ -116,8 +116,8 @@ func TestUpdateUser(t *testing.T) {
 	assert.Error(err, "should not be able to access database with old password")
 }
 
-// Phase 1 unit tests for createUserIfNotExists pipeline
-func TestCreateUserIfNotExistsNewUser(t *testing.T) {
+// Unit tests for createUserPipeline
+func TestCreateUserPipelineNewUser(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 
@@ -136,8 +136,8 @@ func TestCreateUserIfNotExistsNewUser(t *testing.T) {
 		Username:   "fptest_newuser",
 		Password:   "testpass",
 	}
-	result := toEither(createUserIfNotExists(p))
-	require.True(E.IsRight(result), "createUserIfNotExists should succeed for new user")
+	result := toEither(createUserPipeline(p))
+	require.True(E.IsRight(result), "createUserPipeline should succeed for new user")
 
 	// Verify user was actually created
 	ok, err := client.UserExists(ctx, "fptest_newuser")
@@ -145,7 +145,7 @@ func TestCreateUserIfNotExistsNewUser(t *testing.T) {
 	require.True(ok, "user should exist after creation")
 }
 
-func TestCreateUserIfNotExistsIdempotent(t *testing.T) {
+func TestCreateUserPipelineIdempotent(t *testing.T) {
 	require := require.New(t)
 
 	client, err := getClient(&ClientParams{
@@ -164,14 +164,14 @@ func TestCreateUserIfNotExistsIdempotent(t *testing.T) {
 		Password:   "testpass",
 	}
 	// Create once
-	result1 := toEither(createUserIfNotExists(p))
+	result1 := toEither(createUserPipeline(p))
 	require.True(E.IsRight(result1))
 	// Create again — should succeed (idempotent, logs "exists")
-	result2 := toEither(createUserIfNotExists(p))
+	result2 := toEither(createUserPipeline(p))
 	require.True(E.IsRight(result2))
 }
 
-// Phase 2 unit tests for updateUserPipeline
+// Unit tests for updateUserPipeline
 func TestUpdateUserPipelineSuccess(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()

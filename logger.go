@@ -38,10 +38,6 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-// Typed logger functions for IOE.ChainFirstIOK
-// Each takes all needed values by parameter and returns IO.IO[F.Void]
-
-// nolint:unused // Used in Phase 1 implementation
 func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("user created", "username", username)
@@ -49,7 +45,6 @@ func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	}
 }
 
-// nolint:unused // Used in Phase 1 implementation
 func logUserExists(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("user exists", "username", username)
@@ -57,7 +52,6 @@ func logUserExists(logger *slog.Logger, username string) IO.IO[F.Void] {
 	}
 }
 
-// nolint:unused // Used in Phase 2 implementation
 func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("user updated", "username", username)
@@ -65,7 +59,6 @@ func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	}
 }
 
-// nolint:unused // Used in Phase 3 implementation
 func logDatabaseCreated(logger *slog.Logger, dbname string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("database created", "database", dbname)
@@ -73,7 +66,6 @@ func logDatabaseCreated(logger *slog.Logger, dbname string) IO.IO[F.Void] {
 	}
 }
 
-// nolint:unused // Used in Phase 3 implementation
 func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("database exists", "database", dbname)
@@ -81,7 +73,6 @@ func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[F.Void] {
 	}
 }
 
-// nolint:unused // Used in Phase 3 implementation
 func logGrantAccess(logger *slog.Logger, username, dbname, grant string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("database access granted", "username", username, "database", dbname, "grant", grant)
