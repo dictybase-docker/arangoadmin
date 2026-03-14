@@ -20,27 +20,23 @@ type UserForUpdate struct {
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
 func CreateUser(_ context.Context, cmd *cli.Command) error {
-	logger := newLogger(cmd)
-	connParams := connParamsFromCmd(cmd)
-	username := cmd.String("user")
-	password := cmd.String("password")
-
-	result := F.Pipe1(
-		createArangoClient(connParams),
-		IOE.Chain(func(client driver.Client) IOE.IOEither[error, F.Void] {
-			return createUserIfNotExists(UserParams{
-				WithClient: WithClient{Client: client, Logger: logger},
-				Username:   username,
-				Password:   password,
-			})
-		}),
+	userParams := UserParams{
+		WithClient: WithClient{Logger: newLogger(cmd)},
+		Username:   cmd.String("user"),
+		Password:   cmd.String("password"),
+	}
+	return F.Pipe6(
+		cmd,
+		connParamsFromCmd,
+		createArangoClient,
+		IOE.Map[error](withUserClient(userParams)),
+		IOE.Chain(createUserIfNotExists),
+		toEither,
+		E.Fold(
+			F.Identity[error],
+			func(_ F.Void) error { return nil },
+		),
 	)
-
-	either := toEither(result)
-	return E.Fold(
-		F.Identity[error],
-		func(_ F.Void) error { return nil },
-	)(either)
 }
 
 // createUserIfNotExists creates a user if they don't exist, otherwise logs that they exist
