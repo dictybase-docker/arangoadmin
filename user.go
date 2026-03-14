@@ -8,35 +8,58 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CreateUser adds a new user with pre-specified privileges to ArangoDB
+// UserCreationResult indicates whether a user was newly created or already existed.
+type UserCreationResult struct {
+	Existed  bool   // true if the user already existed, false if newly created
+	Username string // the name of the user
+}
+
+// createOrGetUser checks whether the given user exists in ArangoDB and creates
+// them if not. It returns a UserCreationResult describing the outcome. No
+// logging occurs here — that is the caller's responsibility.
+func createOrGetUser(
+	ctx context.Context,
+	client driver.Client,
+	username, password string,
+) (UserCreationResult, error) {
+	ok, err := client.UserExists(ctx, username)
+	if err != nil {
+		return UserCreationResult{}, fmt.Errorf("error in checking for user %s: %s", username, err)
+	}
+	if ok {
+		return UserCreationResult{Existed: true, Username: username}, nil
+	}
+	_, err = client.CreateUser(ctx, username, &driver.UserOptions{Password: password})
+	if err != nil {
+		return UserCreationResult{}, fmt.Errorf("error in creating user %s: %s", username, err)
+	}
+	return UserCreationResult{Existed: false, Username: username}, nil
+}
+
+// CreateUser adds a new user with pre-specified privileges to ArangoDB.
+// The user-existence check and creation are delegated to createOrGetUser;
+// logging happens here at the command boundary.
 func CreateUser(ctx context.Context, cmd *cli.Command) error {
-	logger := getLogger(cmd)
-	user := cmd.String("user")
-	pass := cmd.String("password")
 	client, err := getClient(&ClientParams{
 		Host:     cmd.String("host"),
 		Port:     cmd.String("port"),
 		User:     cmd.String("admin-user"),
 		Pass:     cmd.String("admin-password"),
 		IsSecure: cmd.Bool("is-secure"),
-	},
-	)
+	})
 	if err != nil {
 		return cli.Exit(fmt.Sprintf("unable to get client %s", err), 2)
 	}
-	ok, err := client.UserExists(ctx, user)
+	result, err := createOrGetUser(ctx, client, cmd.String("user"), cmd.String("password"))
 	if err != nil {
-		return fmt.Errorf("error in checking for user %s: %s", user, err)
+		return err
 	}
-	if ok {
-		logger.Infof("user %s exists, nothing to create", user)
-		return nil
+	logger := getLogger(cmd)
+	if result.Existed {
+		logger.Infof("user %s exists, nothing to create", result.Username)
+	} else {
+		logger.Infof("successfully created user %s", result.Username)
 	}
-	_, err = client.CreateUser(ctx, user, &driver.UserOptions{Password: pass})
-	if err != nil {
-		return fmt.Errorf("error in creating user %s: %s", user, err)
-	}
-	logger.Infof("successfully created user %s", user)
 	return nil
 }
 
