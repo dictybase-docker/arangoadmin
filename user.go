@@ -34,48 +34,62 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 				Password: cmd.String("password"),
 			}
 		}),
-		IOE.Chain(createUserIfNotExists),
+		IOE.Chain(createUserPipeline),
 		foldIOE[F.Void],
 	)
 }
 
-// createUserIfNotExists creates a user if they don't exist, otherwise logs that they exist
-func createUserIfNotExists(p UserParams) IOE.IOEither[error, F.Void] {
+// createUserPipeline creates a user if they don't exist, otherwise logs that they exist
+func createUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
 	return F.Pipe2(
+		p,
+		checkUserExistence,
+		IOE.Chain(routeUserCreation(p)),
+	)
+}
+
+// checkUserExistence checks whether the user exists in ArangoDB
+func checkUserExistence(p UserParams) IOE.IOEither[error, bool] {
+	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
-		IOE.MapLeft[bool](
-			fperrors.OnError(
-				fmt.Sprintf("error checking for user %s", p.Username),
-			),
-		),
-		IOE.Chain(F.Ternary(
-			F.Identity[bool],
-			func(_ bool) IOE.IOEither[error, F.Void] {
-				return IOE.FromIO[error](logUserExists(p.Logger, p.Username))
-			},
-			func(_ bool) IOE.IOEither[error, F.Void] {
-				return F.Pipe3(
-					IOE.TryCatchError(func() (driver.User, error) {
-						return p.Client.CreateUser(
-							context.Background(),
-							p.Username,
-							&driver.UserOptions{Password: p.Password},
-						)
-					}),
-					IOE.MapLeft[driver.User](
-						fperrors.OnError(
-							fmt.Sprintf("error creating user %s", p.Username),
-						),
-					),
-					IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[F.Void] {
-						return logUserCreated(p.Logger, p.Username)
-					}),
-					IOE.MapTo[error, driver.User](F.VOID),
-				)
-			},
+		IOE.MapLeft[bool](fperrors.OnError(
+			fmt.Sprintf("error checking for user %s", p.Username),
 		)),
+	)
+}
+
+// routeUserCreation routes to either logging existence or creating a new user
+func routeUserCreation(p UserParams) func(bool) IOE.IOEither[error, F.Void] {
+	return F.Ternary(
+		F.Identity[bool],
+		func(_ bool) IOE.IOEither[error, F.Void] {
+			return IOE.FromIO[error](logUserExists(p.Logger, p.Username))
+		},
+		func(_ bool) IOE.IOEither[error, F.Void] {
+			return createNewUser(p)
+		},
+	)
+}
+
+// createNewUser creates a new user in ArangoDB and logs the result
+func createNewUser(p UserParams) IOE.IOEither[error, F.Void] {
+	return F.Pipe3(
+		IOE.TryCatchError(func() (driver.User, error) {
+			return p.Client.CreateUser(
+				context.Background(),
+				p.Username,
+				&driver.UserOptions{Password: p.Password},
+			)
+		}),
+		IOE.MapLeft[driver.User](fperrors.OnError(
+			fmt.Sprintf("error creating user %s", p.Username),
+		)),
+		IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[F.Void] {
+			return logUserCreated(p.Logger, p.Username)
+		}),
+		IOE.MapTo[error, driver.User](F.VOID),
 	)
 }
 
@@ -115,11 +129,9 @@ func checkUserExists(p UserParams) IOE.IOEither[error, UserParams] {
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
 		}),
-		IOE.MapLeft[bool](
-			fperrors.OnError(
-				fmt.Sprintf("error checking for user %s", p.Username),
-			),
-		),
+		IOE.MapLeft[bool](fperrors.OnError(
+			fmt.Sprintf("error checking for user %s", p.Username),
+		)),
 		IOE.ChainEitherK(E.FromPredicate(
 			F.Identity[bool],
 			func(_ bool) error { return fmt.Errorf("user %s does not exist", p.Username) },
@@ -154,11 +166,9 @@ func updateExistingUser(u UserForUpdate) IOE.IOEither[error, F.Void] {
 				driver.UserOptions{Password: u.Params.Password},
 			)
 		}),
-		IOE.MapLeft[F.Void](
-			fperrors.OnError(
-				fmt.Sprintf("error updating user %s", u.Params.Username),
-			),
-		),
+		IOE.MapLeft[F.Void](fperrors.OnError(
+			fmt.Sprintf("error updating user %s", u.Params.Username),
+		)),
 		IOE.ChainFirstIOK[error](logUserUpdatedStep(u)),
 	)
 }
