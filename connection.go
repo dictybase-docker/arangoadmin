@@ -87,3 +87,15 @@ func toEither[ER, A any](ioe IOE.IOEither[ER, A]) E.Either[ER, A] {
 func toTuple[A any](ioe IOE.IOEither[error, A]) (A, error) {
 	return E.UnwrapError(ioe())
 }
+
+// foldIOE executes an IOEither and folds the result into an error (nil on success)
+func foldIOE[A any](ma IOE.IOEither[error, A]) error {
+	return F.Pipe2(
+		ma,
+		toEither,
+		E.Fold(
+			F.Identity[error],
+			func(_ A) error { return nil },
+		),
+	)
+}
