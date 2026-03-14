@@ -20,22 +20,22 @@ type UserForUpdate struct {
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
 func CreateUser(_ context.Context, cmd *cli.Command) error {
-	userParams := UserParams{
-		WithClient: WithClient{Logger: newLogger(cmd)},
-		Username:   cmd.String("user"),
-		Password:   cmd.String("password"),
-	}
-	return F.Pipe6(
+	return F.Pipe5(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
-		IOE.Map[error](withUserClient(userParams)),
+		IOE.Map[error](func(client driver.Client) UserParams {
+			return UserParams{
+				WithClient: WithClient{
+					Client: client,
+					Logger: newLogger(cmd),
+				},
+				Username: cmd.String("user"),
+				Password: cmd.String("password"),
+			}
+		}),
 		IOE.Chain(createUserIfNotExists),
-		toEither,
-		E.Fold(
-			F.Identity[error],
-			func(_ F.Void) error { return nil },
-		),
+		foldIOE[F.Void],
 	)
 }
 
