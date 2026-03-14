@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"testing"
 
+	E "github.com/IBM/fp-go/v2/either"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
 
@@ -109,4 +114,109 @@ func TestUpdateUser(t *testing.T) {
 	assert.NoError(err)
 	_, err = clientOld.Database(ctx, dbName)
 	assert.Error(err, "should not be able to access database with old password")
+}
+
+// Unit tests for createUserPipeline
+func TestCreateUserPipelineNewUser(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_newuser",
+		Password:   "testpass",
+	}
+	result := toEither(createUserPipeline(p))
+	require.True(E.IsRight(result), "createUserPipeline should succeed for new user")
+
+	// Verify user was actually created
+	ok, err := client.UserExists(ctx, "fptest_newuser")
+	require.NoError(err)
+	require.True(ok, "user should exist after creation")
+}
+
+func TestCreateUserPipelineIdempotent(t *testing.T) {
+	require := require.New(t)
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_idempotent",
+		Password:   "testpass",
+	}
+	// Create once
+	result1 := toEither(createUserPipeline(p))
+	require.True(E.IsRight(result1))
+	// Create again — should succeed (idempotent, logs "exists")
+	result2 := toEither(createUserPipeline(p))
+	require.True(E.IsRight(result2))
+}
+
+// Unit tests for updateUserPipeline
+func TestUpdateUserPipelineSuccess(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	// Pre-create user
+	_, err = client.CreateUser(ctx, "fptest_update", &driver.UserOptions{Password: "oldpass"})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_update",
+		Password:   "newpass",
+	}
+	result := toEither(updateUserPipeline(p))
+	require.True(E.IsRight(result), "updateUserPipeline should succeed for existing user")
+}
+
+func TestUpdateUserPipelineNonExistent(t *testing.T) {
+	require := require.New(t)
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	p := UserParams{
+		WithClient: WithClient{Client: client, Logger: logger},
+		Username:   "fptest_ghost",
+		Password:   "pass",
+	}
+	result := toEither(updateUserPipeline(p))
+	require.True(E.IsLeft(result), "updateUserPipeline should fail for non-existent user")
 }
