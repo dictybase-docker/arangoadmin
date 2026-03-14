@@ -2,4 +2,3 @@ vendor/
 arangoadmin
 test/
 .tool-versions
-.claude

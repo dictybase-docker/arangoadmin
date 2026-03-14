@@ -53,7 +53,6 @@ type UserWithGrant struct {
 }
 
 // Pure helper to extract connection params from CLI
-// nolint:unused // Used in Phase 1-3 implementation
 func connParamsFromCmd(cmd *cli.Command) ConnectionParams {
 	return ConnectionParams{
 		Host:     cmd.String("host"),
