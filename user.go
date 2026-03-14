@@ -81,22 +81,22 @@ func createUserIfNotExists(p UserParams) IOE.IOEither[error, F.Void] {
 
 // UpdateUser updates the password of an existing user in ArangoDB
 func UpdateUser(_ context.Context, cmd *cli.Command) error {
-	userParams := UserParams{
-		WithClient: WithClient{Logger: newLogger(cmd)},
-		Username:   cmd.String("user"),
-		Password:   cmd.String("password"),
-	}
-	return F.Pipe6(
+	return F.Pipe5(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
-		IOE.Map[error](withUserClient(userParams)),
+		IOE.Map[error](func(client driver.Client) UserParams {
+			return UserParams{
+				WithClient: WithClient{
+					Client: client,
+					Logger: newLogger(cmd),
+				},
+				Username: cmd.String("user"),
+				Password: cmd.String("password"),
+			}
+		}),
 		IOE.Chain(updateUserPipeline),
-		toEither,
-		E.Fold(
-			F.Identity[error],
-			func(_ F.Void) error { return nil },
-		),
+		foldIOE[F.Void],
 	)
 }
 
@@ -108,13 +108,6 @@ func updateUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
 		IOE.Chain(getExistingUser),
 		IOE.Chain(updateExistingUser),
 	)
-}
-
-func withUserClient(p UserParams) func(driver.Client) UserParams {
-	return func(client driver.Client) UserParams {
-		p.Client = client
-		return p
-	}
 }
 
 func checkUserExists(p UserParams) IOE.IOEither[error, UserParams] {
