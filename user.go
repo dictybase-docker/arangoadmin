@@ -9,6 +9,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
@@ -20,27 +21,31 @@ type UserForUpdate struct {
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
 func CreateUser(_ context.Context, cmd *cli.Command) error {
-	return F.Pipe5(
+	logger := newLogger(cmd)
+	ioe := F.Pipe4(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
-		IOE.Map[error](func(client driver.Client) UserParams {
-			return UserParams{
-				WithClient: WithClient{
-					Client: client,
-					Logger: newLogger(cmd),
-				},
+		IOE.Map[error](func(client driver.Client) CreateUserParams {
+			return CreateUserParams{
+				Client:   client,
 				Username: cmd.String("user"),
 				Password: cmd.String("password"),
 			}
 		}),
 		IOE.Chain(createUserPipeline),
-		foldIOE[F.Void],
 	)
+	result, err := toTuple(ioe)
+	if err != nil {
+		return err
+	}
+
+	logCreateUserOutcome(logger, result)
+	return nil
 }
 
-// createUserPipeline creates a user if they don't exist, otherwise logs that they exist
-func createUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
+// createUserPipeline creates a user if they don't exist or returns the existing user.
+func createUserPipeline(p CreateUserParams) IOE.IOEither[error, CreateUserResult] {
 	return F.Pipe2(
 		p,
 		checkUserExistence,
@@ -49,7 +54,7 @@ func createUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
 }
 
 // checkUserExistence checks whether the user exists in ArangoDB
-func checkUserExistence(p UserParams) IOE.IOEither[error, bool] {
+func checkUserExistence(p CreateUserParams) IOE.IOEither[error, bool] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
 			return p.Client.UserExists(context.Background(), p.Username)
@@ -60,22 +65,45 @@ func checkUserExistence(p UserParams) IOE.IOEither[error, bool] {
 	)
 }
 
-// routeUserCreation routes to either logging existence or creating a new user
-func routeUserCreation(p UserParams) func(bool) IOE.IOEither[error, F.Void] {
+// routeUserCreation routes to either fetching an existing user or creating a new one.
+func routeUserCreation(p CreateUserParams) func(bool) IOE.IOEither[error, CreateUserResult] {
 	return F.Ternary(
 		F.Identity[bool],
-		func(_ bool) IOE.IOEither[error, F.Void] {
-			return IOE.FromIO[error](logUserExists(p.Logger, p.Username))
+		func(_ bool) IOE.IOEither[error, CreateUserResult] {
+			return F.Pipe1(
+				fetchExistingUser(p),
+				IOE.Map[error](withCreateStatus(false)),
+			)
 		},
-		func(_ bool) IOE.IOEither[error, F.Void] {
-			return createNewUser(p)
+		func(_ bool) IOE.IOEither[error, CreateUserResult] {
+			return F.Pipe1(
+				createNewUser(p),
+				IOE.Map[error](withCreateStatus(true)),
+			)
 		},
 	)
 }
 
-// createNewUser creates a new user in ArangoDB and logs the result
-func createNewUser(p UserParams) IOE.IOEither[error, F.Void] {
-	return F.Pipe3(
+func fetchExistingUser(p CreateUserParams) IOE.IOEither[error, driver.User] {
+	return F.Pipe1(
+		IOE.TryCatchError(func() (driver.User, error) {
+			return p.Client.User(context.Background(), p.Username)
+		}),
+		IOE.MapLeft[driver.User](fperrors.OnError(
+			fmt.Sprintf("error fetching user %s", p.Username),
+		)),
+	)
+}
+
+func withCreateStatus(created bool) func(driver.User) CreateUserResult {
+	return func(user driver.User) CreateUserResult {
+		return P.MakePair(created, user)
+	}
+}
+
+// createNewUser creates a new user in ArangoDB.
+func createNewUser(p CreateUserParams) IOE.IOEither[error, driver.User] {
+	return F.Pipe1(
 		IOE.TryCatchError(func() (driver.User, error) {
 			return p.Client.CreateUser(
 				context.Background(),
@@ -86,10 +114,6 @@ func createNewUser(p UserParams) IOE.IOEither[error, F.Void] {
 		IOE.MapLeft[driver.User](fperrors.OnError(
 			fmt.Sprintf("error creating user %s", p.Username),
 		)),
-		IOE.ChainFirstIOK[error](func(_ driver.User) IO.IO[F.Void] {
-			return logUserCreated(p.Logger, p.Username)
-		}),
-		IOE.MapTo[error, driver.User](F.VOID),
 	)
 }
 

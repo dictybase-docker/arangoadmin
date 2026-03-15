@@ -7,6 +7,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
+	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/urfave/cli/v3"
 )
 
@@ -45,11 +46,15 @@ func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	}
 }
 
-func logUserExists(logger *slog.Logger, username string) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info("user exists", "username", username)
-		return F.VOID
-	}
+func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
+	user := P.Second(result)
+	logger.Info(
+		"create-user result",
+		"username", user.Name(),
+		"created", P.First(result),
+		"active", user.IsActive(),
+		"password_change_needed", user.IsPasswordChangeNeeded(),
+	)
 }
 
 func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
