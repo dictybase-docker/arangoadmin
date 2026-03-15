@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 
+	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
@@ -31,6 +32,15 @@ type UserParams struct {
 	WithClient
 	Username, Password string
 }
+
+// CreateUserParams is a narrower input for the create-user pipeline.
+type CreateUserParams struct {
+	Client             driver.Client
+	Username, Password string
+}
+
+// CreateUserResult carries whether the user was newly created and the user itself.
+type CreateUserResult = P.Pair[bool, driver.User]
 
 // --- create-database ---
 type DatabaseParams struct {
