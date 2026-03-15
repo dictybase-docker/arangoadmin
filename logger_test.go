@@ -1,0 +1,122 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"log/slog"
+	"testing"
+
+	P "github.com/IBM/fp-go/v2/pair"
+	driver "github.com/arangodb/go-driver"
+	"github.com/stretchr/testify/require"
+)
+
+type testUser struct {
+	name                 string
+	active               bool
+	passwordChangeNeeded bool
+}
+
+func (u testUser) Name() string { return u.name }
+
+func (u testUser) IsActive() bool { return u.active }
+
+func (u testUser) IsPasswordChangeNeeded() bool { return u.passwordChangeNeeded }
+
+func (u testUser) Extra(_ interface{}) error { return nil }
+
+func (u testUser) Remove(_ context.Context) error { return nil }
+
+func (u testUser) Update(_ context.Context, _ driver.UserOptions) error { return nil }
+
+func (u testUser) Replace(_ context.Context, _ driver.UserOptions) error { return nil }
+
+func (u testUser) AccessibleDatabases(_ context.Context) ([]driver.Database, error) {
+	return nil, nil
+}
+
+func (u testUser) SetDatabaseAccess(
+	_ context.Context,
+	_ driver.Database,
+	_ driver.Grant,
+) error {
+	return nil
+}
+
+func (u testUser) GetDatabaseAccess(
+	_ context.Context,
+	_ driver.Database,
+) (driver.Grant, error) {
+	return driver.GrantNone, nil
+}
+
+func (u testUser) RemoveDatabaseAccess(_ context.Context, _ driver.Database) error {
+	return nil
+}
+
+func (u testUser) SetCollectionAccess(
+	_ context.Context,
+	_ driver.AccessTarget,
+	_ driver.Grant,
+) error {
+	return nil
+}
+
+func (u testUser) GetCollectionAccess(
+	_ context.Context,
+	_ driver.AccessTarget,
+) (driver.Grant, error) {
+	return driver.GrantNone, nil
+}
+
+func (u testUser) RemoveCollectionAccess(
+	_ context.Context,
+	_ driver.AccessTarget,
+) error {
+	return nil
+}
+
+func (u testUser) GrantReadWriteAccess(_ context.Context, _ driver.Database) error {
+	return nil
+}
+
+func (u testUser) RevokeAccess(_ context.Context, _ driver.Database) error { return nil }
+
+func TestLogCreateUserOutcomeIncludesStatus(t *testing.T) {
+	require := require.New(t)
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	logCreateUserOutcome(logger, P.MakePair[bool, driver.User](true, testUser{
+		name:   "created-user",
+		active: true,
+	}))
+	output := buf.String()
+	require.Contains(output, "msg=\"user status\"")
+	require.Contains(output, "username=created-user")
+	require.Contains(output, "status=created")
+
+	buf.Reset()
+
+	logCreateUserOutcome(logger, P.MakePair[bool, driver.User](false, testUser{
+		name:   "existing-user",
+		active: true,
+	}))
+	output = buf.String()
+	require.Contains(output, "msg=\"user status\"")
+	require.Contains(output, "username=existing-user")
+	require.Contains(output, "status=existing")
+}
+
+func TestLogUserUpdatedIncludesStatus(t *testing.T) {
+	require := require.New(t)
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	logUserUpdated(logger, "updated-user")()
+
+	output := buf.String()
+	require.Contains(output, "msg=\"user status\"")
+	require.Contains(output, "username=updated-user")
+	require.Contains(output, "status=updated")
+}
