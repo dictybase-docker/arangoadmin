@@ -7,6 +7,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
+	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/urfave/cli/v3"
 )
@@ -41,25 +42,32 @@ func parseLogLevel(levelStr string) slog.Level {
 
 func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
-		logger.Info("user created", "username", username)
+		logger.Info("user status", "username", username, "status", "created")
 		return F.VOID
 	}
 }
 
 func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
-	user := P.Second(result)
+	status := F.Pipe2(
+		P.First(result),
+		O.FromPredicate(F.Identity[bool]),
+		O.Fold(
+			func() string { return "existing" },
+			func(_ bool) string { return "created" },
+		),
+	)
 	logger.Info(
-		"create-user result",
-		"username", user.Name(),
-		"created", P.First(result),
-		"active", user.IsActive(),
-		"password_change_needed", user.IsPasswordChangeNeeded(),
+		"user status",
+		"username",
+		P.Second(result).Name(),
+		"status",
+		status,
 	)
 }
 
 func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
-		logger.Info("user updated", "username", username)
+		logger.Info("user status", "username", username, "status", "updated")
 		return F.VOID
 	}
 }
@@ -78,9 +86,20 @@ func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[F.Void] {
 	}
 }
 
-func logGrantAccess(logger *slog.Logger, username, dbname, grant string) IO.IO[F.Void] {
+func logGrantAccess(
+	logger *slog.Logger,
+	username, dbname, grant string,
+) IO.IO[F.Void] {
 	return func() F.Void {
-		logger.Info("database access granted", "username", username, "database", dbname, "grant", grant)
+		logger.Info(
+			"database access granted",
+			"username",
+			username,
+			"database",
+			dbname,
+			"grant",
+			grant,
+		)
 		return F.VOID
 	}
 }
