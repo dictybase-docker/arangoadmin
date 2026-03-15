@@ -35,17 +35,33 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 		}),
 		IOE.Chain(createUserPipeline),
 	)
-	result, err := toTuple(ioe)
-	if err != nil {
+
+	output := F.Pipe2(
+		ioe,
+		toEither,
+		E.Fold(
+			func(err error) P.Pair[CreateUserResult, error] {
+				var zero CreateUserResult
+				return P.MakePair(zero, err)
+			},
+			func(result CreateUserResult) P.Pair[CreateUserResult, error] {
+				return P.MakePair[CreateUserResult, error](result, nil)
+			},
+		),
+	)
+
+	if err := P.Second(output); err != nil {
 		return err
 	}
 
-	logCreateUserOutcome(logger, result)
+	logCreateUserOutcome(logger, P.First(output))
 	return nil
 }
 
 // createUserPipeline creates a user if they don't exist or returns the existing user.
-func createUserPipeline(p CreateUserParams) IOE.IOEither[error, CreateUserResult] {
+func createUserPipeline(
+	p CreateUserParams,
+) IOE.IOEither[error, CreateUserResult] {
 	return F.Pipe2(
 		p,
 		checkUserExistence,
@@ -66,7 +82,9 @@ func checkUserExistence(p CreateUserParams) IOE.IOEither[error, bool] {
 }
 
 // routeUserCreation routes to either fetching an existing user or creating a new one.
-func routeUserCreation(p CreateUserParams) func(bool) IOE.IOEither[error, CreateUserResult] {
+func routeUserCreation(
+	p CreateUserParams,
+) func(bool) IOE.IOEither[error, CreateUserResult] {
 	return F.Ternary(
 		F.Identity[bool],
 		func(_ bool) IOE.IOEither[error, CreateUserResult] {
