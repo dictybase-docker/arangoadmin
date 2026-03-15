@@ -42,6 +42,9 @@ type CreateUserParams struct {
 // CreateUserResult carries whether the user was newly created and the user itself.
 type CreateUserResult = P.Pair[bool, driver.User]
 
+// CreateUserRouteParams carries user existence state alongside create-user params.
+type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
+
 // --- create-database ---
 type DatabaseParams struct {
 	WithClient
