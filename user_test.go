@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
+	P "github.com/IBM/fp-go/v2/pair"
+	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
 
@@ -130,14 +131,15 @@ func TestCreateUserPipelineNewUser(t *testing.T) {
 	})
 	require.NoError(err)
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	p := UserParams{
-		WithClient: WithClient{Client: client, Logger: logger},
-		Username:   "fptest_newuser",
-		Password:   "testpass",
+	p := CreateUserParams{
+		Client:   client,
+		Username: "fptest_newuser",
+		Password: "testpass",
 	}
-	result := toEither(createUserPipeline(p))
-	require.True(E.IsRight(result), "createUserPipeline should succeed for new user")
+	result, err := toTuple(createUserPipeline(p))
+	require.NoError(err, "createUserPipeline should succeed for new user")
+	require.True(P.First(result), "true should mean newly created")
+	require.Equal("fptest_newuser", P.Second(result).Name())
 
 	// Verify user was actually created
 	ok, err := client.UserExists(ctx, "fptest_newuser")
@@ -157,18 +159,21 @@ func TestCreateUserPipelineIdempotent(t *testing.T) {
 	})
 	require.NoError(err)
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	p := UserParams{
-		WithClient: WithClient{Client: client, Logger: logger},
-		Username:   "fptest_idempotent",
-		Password:   "testpass",
+	p := CreateUserParams{
+		Client:   client,
+		Username: "fptest_idempotent",
+		Password: "testpass",
 	}
 	// Create once
-	result1 := toEither(createUserPipeline(p))
-	require.True(E.IsRight(result1))
+	result1, err := toTuple(createUserPipeline(p))
+	require.NoError(err)
+	require.True(P.First(result1), "first creation should report created=true")
+	require.Equal("fptest_idempotent", P.Second(result1).Name())
 	// Create again — should succeed (idempotent, logs "exists")
-	result2 := toEither(createUserPipeline(p))
-	require.True(E.IsRight(result2))
+	result2, err := toTuple(createUserPipeline(p))
+	require.NoError(err)
+	require.False(P.First(result2), "second creation should report created=false")
+	require.Equal("fptest_idempotent", P.Second(result2).Name())
 }
 
 // Unit tests for updateUserPipeline
