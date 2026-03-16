@@ -48,20 +48,54 @@ func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
 }
 
 func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
-	status := F.Pipe2(
-		P.First(result),
-		O.FromPredicate(F.Identity[bool]),
-		O.Fold(
-			func() string { return "existing" },
-			func(_ bool) string { return "created" },
-		),
-	)
+	status := statusFromCreated(P.First(result))
 	logger.Info(
 		"user status",
 		"username",
 		P.Second(result).Name(),
 		"status",
 		status,
+	)
+}
+
+func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) {
+	for _, dbResult := range result.Databases {
+		logger.Info(
+			"database status",
+			"database",
+			P.Second(dbResult),
+			"status",
+			statusFromCreated(P.First(dbResult)),
+		)
+	}
+
+	if result.User == nil {
+		return
+	}
+
+	logCreateUserOutcome(logger, *result.User)
+	username := P.Second(*result.User).Name()
+	for _, grantResult := range result.Grants {
+		logger.Info(
+			"database access granted",
+			"username",
+			username,
+			"database",
+			P.First(grantResult),
+			"grant",
+			P.Second(grantResult),
+		)
+	}
+}
+
+func statusFromCreated(created bool) string {
+	return F.Pipe2(
+		created,
+		O.FromPredicate(F.Identity[bool]),
+		O.Fold(
+			func() string { return "existing" },
+			func(_ bool) string { return "created" },
+		),
 	)
 }
 

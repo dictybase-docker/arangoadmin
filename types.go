@@ -69,6 +69,20 @@ type GrantDBParams struct {
 	User   driver.User
 }
 
+// CreateSingleDBResult carries whether a database was newly created and its name.
+type CreateSingleDBResult = P.Pair[bool, string]
+
+// CreateGrantResult carries database name and applied grant.
+type CreateGrantResult = P.Pair[string, string]
+
+// CreateDatabaseResult carries outcomes for database creation, optional user creation,
+// and grants applied during create-database command execution.
+type CreateDatabaseResult struct {
+	Databases []CreateSingleDBResult
+	User      *CreateUserResult
+	Grants    []CreateGrantResult
+}
+
 // Pure helper to extract connection params from CLI
 func connParamsFromCmd(cmd *cli.Command) ConnectionParams {
 	return ConnectionParams{
