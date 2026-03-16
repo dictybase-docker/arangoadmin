@@ -67,18 +67,6 @@ func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) 
 	}
 
 	logCreateUserOutcome(logger, *result.User)
-	username := P.Second(*result.User).Name()
-	for _, grantResult := range result.Grants {
-		logger.Info(
-			"database access granted",
-			"username",
-			username,
-			"database",
-			P.First(grantResult),
-			"grant",
-			P.Second(grantResult),
-		)
-	}
 }
 
 func statusFromCreated(created bool) string {
