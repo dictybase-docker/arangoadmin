@@ -40,13 +40,6 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-func logUserCreated(logger *slog.Logger, username string) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info("user status", "username", username, "status", "created")
-		return F.VOID
-	}
-}
-
 func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
 	status := statusFromCreated(P.First(result))
 	logger.Info(
@@ -102,38 +95,6 @@ func statusFromCreated(created bool) string {
 func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
 		logger.Info("user status", "username", username, "status", "updated")
-		return F.VOID
-	}
-}
-
-func logDatabaseCreated(logger *slog.Logger, dbname string) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info("database created", "database", dbname)
-		return F.VOID
-	}
-}
-
-func logDatabaseExists(logger *slog.Logger, dbname string) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info("database exists", "database", dbname)
-		return F.VOID
-	}
-}
-
-func logGrantAccess(
-	logger *slog.Logger,
-	username, dbname, grant string,
-) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info(
-			"database access granted",
-			"username",
-			username,
-			"database",
-			dbname,
-			"grant",
-			grant,
-		)
 		return F.VOID
 	}
 }
