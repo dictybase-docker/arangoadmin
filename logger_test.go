@@ -135,7 +135,8 @@ func TestLogCreateDatabaseOutcomeIncludesStatuses(t *testing.T) {
 			P.MakePair(true, "db_created"),
 			P.MakePair(false, "db_existing"),
 		},
-		User: &userResult,
+		HasUser: true,
+		User:    userResult,
 		Grants: []CreateGrantResult{
 			P.MakePair("db_created", "rw"),
 			P.MakePair("db_existing", "rw"),

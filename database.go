@@ -127,6 +127,7 @@ func maybeCreateUserAndGrant(
 				func() IOE.IOEither[error, CreateDatabaseResult] {
 					return IOE.Of[error](CreateDatabaseResult{
 						Databases: dbResults,
+						HasUser:   false,
 					})
 				},
 				func(_ string) IOE.IOEither[error, CreateDatabaseResult] {
@@ -138,7 +139,8 @@ func maybeCreateUserAndGrant(
 							userResult := P.First(result)
 							return CreateDatabaseResult{
 								Databases: dbResults,
-								User:      &userResult,
+								HasUser:   true,
+								User:      userResult,
 								Grants:    P.Second(result),
 							}
 						}),

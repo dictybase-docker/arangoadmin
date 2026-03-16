@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// Base connection params (parsed from CLI flags)
+// ConnectionParams contains connection values parsed from CLI flags.
 type ConnectionParams struct {
 	Host, Port, User, Pass string
 	IsSecure               bool
@@ -20,14 +20,14 @@ type WithConnection struct {
 	Conn driver.Connection
 }
 
-// Enriched with ArangoDB client + logger
+// WithClient enriches connection params with an ArangoDB client and logger.
 type WithClient struct {
 	ConnectionParams
 	Client driver.Client
 	Logger *slog.Logger
 }
 
-// --- create-user / update-user ---
+// UserParams contains CLI-provided user values plus client dependencies.
 type UserParams struct {
 	WithClient
 	Username, Password string
@@ -45,7 +45,7 @@ type CreateUserResult = P.Pair[bool, driver.User]
 // CreateUserRouteParams carries user existence state alongside create-user params.
 type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 
-// --- create-database ---
+// DatabaseParams contains create-database command inputs and dependencies.
 type DatabaseParams struct {
 	WithClient
 	Databases          []string
@@ -79,7 +79,8 @@ type CreateGrantResult = P.Pair[string, string]
 // and grants applied during create-database command execution.
 type CreateDatabaseResult struct {
 	Databases []CreateSingleDBResult
-	User      *CreateUserResult
+	HasUser   bool
+	User      CreateUserResult
 	Grants    []CreateGrantResult
 }
 
