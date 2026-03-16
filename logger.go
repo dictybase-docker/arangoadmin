@@ -62,11 +62,11 @@ func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) 
 		)
 	}
 
-	if result.User == nil {
+	if !result.HasUser {
 		return
 	}
 
-	logCreateUserOutcome(logger, *result.User)
+	logCreateUserOutcome(logger, result.User)
 }
 
 func statusFromCreated(created bool) string {
