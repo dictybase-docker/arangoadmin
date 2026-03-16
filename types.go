@@ -49,6 +49,7 @@ type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 type DatabaseParams struct {
 	WithClient
 	Dbname             string
+	Databases          []string
 	Username, Password string // optional user creation
 	Grant              string
 }

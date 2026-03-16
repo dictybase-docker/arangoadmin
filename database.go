@@ -1,11 +1,10 @@
-paaaackage main
+package main
 
 import (
 	"context"
 	"fmt"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
@@ -23,7 +22,6 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 		createArangoClient,
 		IOE.Map[error](func(client driver.Client) DatabaseParams {
 			databases := cmd.StringSlice("database")
-			dbparams.Client = client
 			return DatabaseParams{
 				WithClient: WithClient{
 					Client: client,
