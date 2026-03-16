@@ -48,21 +48,24 @@ type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 // --- create-database ---
 type DatabaseParams struct {
 	WithClient
-	Dbname             string
 	Databases          []string
 	Username, Password string // optional user creation
 	Grant              string
 }
 
-// Intermediate type for optional user creation + grant pipeline
-type UserGrantParams struct {
-	Params    DatabaseParams
-	Databases []string
+// SingleDBParams carries what's needed to create one database
+type SingleDBParams struct {
+	Client driver.Client
+	Logger *slog.Logger
+	Dbname string
 }
 
-// Intermediate type for create-database grant pipeline
-type UserWithGrant struct {
-	Params DatabaseParams
+// GrantDBParams carries what's needed to grant a user access to one database
+type GrantDBParams struct {
+	Client driver.Client
+	Logger *slog.Logger
+	Dbname string
+	Grant  string
 	User   driver.User
 }
 

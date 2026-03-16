@@ -6,10 +6,7 @@ import (
 	"os"
 	"testing"
 
-	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
-	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
 	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,9 +123,10 @@ func TestCreateSingleDatabaseNew(t *testing.T) {
 	require.NoError(err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	p := DatabaseParams{
-		WithClient: WithClient{Client: client, Logger: logger},
-		Dbname:     "fptest_newdb",
+	p := SingleDBParams{
+		Client: client,
+		Logger: logger,
+		Dbname: "fptest_newdb",
 	}
 	result := toEither(createSingleDatabase(p))
 	require.True(E.IsRight(result), "createSingleDatabase should succeed for new database")
@@ -151,9 +149,10 @@ func TestCreateSingleDatabaseIdempotent(t *testing.T) {
 	require.NoError(err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	p := DatabaseParams{
-		WithClient: WithClient{Client: client, Logger: logger},
-		Dbname:     "fptest_idempotentdb",
+	p := SingleDBParams{
+		Client: client,
+		Logger: logger,
+		Dbname: "fptest_idempotentdb",
 	}
 	r1 := toEither(createSingleDatabase(p))
 	require.True(E.IsRight(r1))
@@ -181,16 +180,14 @@ func TestGrantSingleDatabase(t *testing.T) {
 	require.NoError(err)
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	uwg := UserWithGrant{
-		Params: DatabaseParams{
-			WithClient: WithClient{Client: client, Logger: logger},
-			Grant:      "rw",
-			Username:   "fptest_grantusr",
-			Dbname:     "fptest_grantdb",
-		},
-		User: user,
+	g := GrantDBParams{
+		Client: client,
+		Logger: logger,
+		Dbname: "fptest_grantdb",
+		Grant:  "rw",
+		User:   user,
 	}
-	result := toEither(grantSingleDatabase(uwg))
+	result := toEither(grantSingleDatabase(g))
 	require.True(E.IsRight(result), "grantSingleDatabase should succeed")
 }
 
@@ -211,24 +208,12 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	p := DatabaseParams{
 		WithClient: WithClient{Client: client, Logger: logger},
+		Databases:  databases,
 		Username:   "fptest_grantuser",
 		Password:   "pass",
 		Grant:      "rw",
 	}
-	result := toEither(F.Pipe2(
-		F.Pipe1(
-			databases,
-			A.Map(func(dbname string) DatabaseParams {
-				q := p
-				q.Dbname = dbname
-				return q
-			}),
-		),
-		IOE.TraverseArraySeq(createSingleDatabase),
-		IOE.Chain(optionalCreateUserAndGrant(UserGrantParams{
-			Params: p, Databases: databases,
-		})),
-	))
+	result := toEither(createDatabasePipeline(p))
 	require.True(E.IsRight(result), "database pipeline should succeed")
 
 	// Verify databases exist
