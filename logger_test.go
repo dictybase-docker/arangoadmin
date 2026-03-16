@@ -120,3 +120,38 @@ func TestLogUserUpdatedIncludesStatus(t *testing.T) {
 	require.Contains(output, "username=updated-user")
 	require.Contains(output, "status=updated")
 }
+
+func TestLogCreateDatabaseOutcomeIncludesStatuses(t *testing.T) {
+	require := require.New(t)
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	userResult := P.MakePair[bool, driver.User](true, testUser{
+		name:   "db-user",
+		active: true,
+	})
+	result := CreateDatabaseResult{
+		Databases: []CreateSingleDBResult{
+			P.MakePair(true, "db_created"),
+			P.MakePair(false, "db_existing"),
+		},
+		User: &userResult,
+		Grants: []CreateGrantResult{
+			P.MakePair("db_created", "rw"),
+			P.MakePair("db_existing", "rw"),
+		},
+	}
+
+	logCreateDatabaseOutcome(logger, result)
+	output := buf.String()
+
+	require.Contains(output, "msg=\"database status\"")
+	require.Contains(output, "database=db_created")
+	require.Contains(output, "status=created")
+	require.Contains(output, "database=db_existing")
+	require.Contains(output, "status=existing")
+	require.Contains(output, "msg=\"user status\"")
+	require.Contains(output, "username=db-user")
+	require.Contains(output, "msg=\"database access granted\"")
+	require.Contains(output, "grant=rw")
+}
