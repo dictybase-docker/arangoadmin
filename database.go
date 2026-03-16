@@ -1,4 +1,4 @@
-package main
+paaaackage main
 
 import (
 	"context"
@@ -17,42 +17,45 @@ import (
 
 // CreateDatabase creates one or more databases with optional user and grants
 func CreateDatabase(_ context.Context, cmd *cli.Command) error {
-	databases := cmd.StringSlice("database")
-	dbparams := DatabaseParams{
-		WithClient: WithClient{Logger: newLogger(cmd)},
-		Username:   cmd.String("user"),
-		Password:   cmd.String("password"),
-		Grant:      cmd.String("grant"),
-	}
-	return F.Pipe6(
+	return F.Pipe5(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
 		IOE.Map[error](func(client driver.Client) DatabaseParams {
+			databases := cmd.StringSlice("database")
 			dbparams.Client = client
-			return dbparams
+			return DatabaseParams{
+				WithClient: WithClient{
+					Client: client,
+					Logger: newLogger(cmd),
+				},
+				Dbname:    "",
+				Username:  cmd.String("user"),
+				Password:  cmd.String("password"),
+				Grant:     cmd.String("grant"),
+				Databases: databases,
+			}
 		}),
-		IOE.Chain(func(p DatabaseParams) IOE.IOEither[error, F.Void] {
-			return F.Pipe2(
-				F.Pipe1(
-					databases,
-					A.Map(func(dbname string) DatabaseParams {
-						q := p
-						q.Dbname = dbname
-						return q
-					}),
-				),
-				IOE.TraverseArraySeq(createSingleDatabase),
-				IOE.Chain(optionalCreateUserAndGrant(UserGrantParams{
-					Params: p, Databases: databases,
-				})),
-			)
-		}),
-		toEither,
-		E.Fold(
-			F.Identity[error],
-			func(_ F.Void) error { return nil },
+		IOE.Chain(createDatabasePipeline),
+		foldIOE[F.Void],
+	)
+}
+
+// createDatabasePipeline creates databases and optionally creates a user with grants.
+func createDatabasePipeline(p DatabaseParams) IOE.IOEither[error, F.Void] {
+	return F.Pipe2(
+		F.Pipe1(
+			p.Databases,
+			A.Map(func(dbname string) DatabaseParams {
+				q := p
+				q.Dbname = dbname
+				return q
+			}),
 		),
+		IOE.TraverseArraySeq(createSingleDatabase),
+		IOE.Chain(optionalCreateUserAndGrant(UserGrantParams{
+			Params: p, Databases: p.Databases,
+		})),
 	)
 }
 
