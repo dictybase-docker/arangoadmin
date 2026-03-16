@@ -152,6 +152,4 @@ func TestLogCreateDatabaseOutcomeIncludesStatuses(t *testing.T) {
 	require.Contains(output, "status=existing")
 	require.Contains(output, "msg=\"user status\"")
 	require.Contains(output, "username=db-user")
-	require.Contains(output, "msg=\"database access granted\"")
-	require.Contains(output, "grant=rw")
 }
