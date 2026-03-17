@@ -175,21 +175,58 @@ func TestGrantSingleDatabase(t *testing.T) {
 	require.NoError(err)
 
 	// Pre-create database and user
-	_, err = client.CreateDatabase(ctx, "fptest_grantdb", nil)
-	require.NoError(err)
-	user, err := client.CreateUser(ctx, "fptest_grantusr", &driver.UserOptions{Password: "p"})
-	require.NoError(err)
+	dbName := "fptest_grantdb"
+	userName := "fptest_grantusr"
+	_, _ = client.CreateDatabase(ctx, dbName, nil)
+	// If it already exists, that's fine for this test
+	user, err := client.CreateUser(ctx, userName, &driver.UserOptions{Password: "p"})
+	if err != nil {
+		user, err = client.User(ctx, userName)
+		require.NoError(err)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	g := GrantDBParams{
 		Client: client,
 		Logger: logger,
-		Dbname: "fptest_grantdb",
+		Dbname: dbName,
 		Grant:  "rw",
 		User:   user,
 	}
 	result := toEither(grantSingleDatabase(g))
 	require.True(E.IsRight(result), "grantSingleDatabase should succeed")
+}
+
+func TestGrantSingleDatabaseFailure(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	// Pre-create database
+	dbName := "fptest_grantdb_fail"
+	_, _ = client.CreateDatabase(ctx, dbName, nil)
+	// Ignore error if it already exists
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	g := GrantDBParams{
+		Client: client,
+		Logger: logger,
+		Dbname: dbName,
+		Grant:  "rw",
+		User:   errorUser{}, // This will fail SetDatabaseAccess
+	}
+	result := toEither(grantSingleDatabase(g))
+	require.True(E.IsLeft(result), "grantSingleDatabase should fail when User.SetDatabaseAccess fails")
+	_, err = E.UnwrapError(result)
+	require.Contains(err.Error(), "error granting access to database")
 }
 
 func TestCreateDatabasePipelineWithUser(t *testing.T) {
