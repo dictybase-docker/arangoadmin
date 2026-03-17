@@ -256,13 +256,13 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 
 	// Verify databases exist
 	for _, db := range databases {
-		ok, err := client.DatabaseExists(ctx, db)
-		require.NoError(err)
+		ok, nerr := client.DatabaseExists(ctx, db)
+		require.NoError(nerr)
 		require.True(ok, "database %s should exist", db)
 	}
 	// Verify user exists
-	ok, err := client.UserExists(ctx, p.Username)
-	require.NoError(err)
+	ok, nerr := client.UserExists(ctx, p.Username)
+	require.NoError(nerr)
 	require.True(ok, "user should exist")
 }
 
