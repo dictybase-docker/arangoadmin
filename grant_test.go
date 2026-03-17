@@ -146,6 +146,7 @@ func TestApplyGrantFailure(t *testing.T) {
 	assert.Contains(err.Error(), "forced error")
 }
 
+
 func TestEnsureGrantMissingUser(t *testing.T) {
 	assert := assert.New(t)
 	ctx := context.Background()

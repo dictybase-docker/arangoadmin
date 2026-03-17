@@ -215,7 +215,7 @@ func TestLogEnsureGrant(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
 	result := P.MakePair("grant-db", "ro")
-	logEnsureGrant(logger)(result)()
+	logEnsureGrantOutcome(logger, result)
 
 	output := buf.String()
 	require.Contains(output, "msg=\"grant status\"")
