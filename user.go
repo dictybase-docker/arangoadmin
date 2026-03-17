@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	E "github.com/IBM/fp-go/v2/either"
-	EQ "github.com/IBM/fp-go/v2/eq"
 	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
@@ -272,24 +271,27 @@ func EnsureUser(_ context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func ensureUserPipeline(p EnsureUserParams) IOE.IOEither[error, EnsureUserResult] {
+func ensureUserPipeline(params EnsureUserParams) IOE.IOEither[error, EnsureUserResult] {
 	return F.Pipe3(
-		p,
+		params,
 		checkUserExistenceForEnsure,
 		IOE.Map[error](func(exists bool) P.Pair[bool, EnsureUserParams] {
-			return P.MakePair(exists, p)
+			return P.MakePair(exists, params)
 		}),
 		IOE.Chain(routeEnsureUser),
 	)
 }
 
-func checkUserExistenceForEnsure(p EnsureUserParams) IOE.IOEither[error, bool] {
+func checkUserExistenceForEnsure(params EnsureUserParams) IOE.IOEither[error, bool] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
-			return p.Client.UserExists(context.Background(), p.Username)
+			return params.Client.UserExists(
+				context.Background(),
+				params.Username,
+			)
 		}),
 		IOE.MapLeft[bool](fperrors.OnError(
-			fmt.Sprintf("error checking for user %s", p.Username),
+			fmt.Sprintf("error checking for user %s", params.Username),
 		)),
 	)
 }
@@ -328,10 +330,6 @@ func ensureNewUserFlow(
 	)
 }
 
-func ensurePolicyEq(expected string) PR.Predicate[string] {
-	return EQ.Equals(EQ.FromStrictEquals[string]())(expected)
-}
-
 func ensureExistingUserFlow(
 	params P.Pair[bool, EnsureUserParams],
 ) IOE.IOEither[error, EnsureUserResult] {
@@ -362,23 +360,35 @@ func fetchExistingEnsureUser(p EnsureUserParams) IOE.IOEither[error, driver.User
 func applyExistingUserPolicy(
 	input EnsureExistingUserPolicyInput,
 ) IOE.IOEither[error, EnsureUserResult] {
-	p := input.Params
-	hasProvidedPassword := func(_ string) bool { return p.Password != "" }
+	isPasswordProvided := F.Pipe2(
+		input.Params.Password,
+		PR.IsNonZero[string](),
+		F.Constant1[string],
+	)
+
 	shouldUpdatePassword := F.Pipe2(
-		ensurePolicyEq("if-provided"),
-		PR.And(hasProvidedPassword),
-		PR.Or(ensurePolicyEq("always")),
+		PR.IsStrictEqual[string]()("if-provided"),
+		PR.And(isPasswordProvided),
+		PR.Or(PR.IsStrictEqual[string]()("always")),
 	)
 
 	return F.Pipe1(
-		p.Policy,
+		input.Params.Policy,
 		F.Ternary(
 			shouldUpdatePassword,
 			func(_ string) IOE.IOEither[error, EnsureUserResult] {
-				return updateEnsureUserPassword(p, input.User)
+				return updateEnsureUserPassword(
+					input.Params,
+					input.User,
+				)
 			},
 			func(_ string) IOE.IOEither[error, EnsureUserResult] {
-				return IOE.Of[error](P.MakePair(UserExisting, input.User))
+				return IOE.Of[error](
+					P.MakePair(
+						UserExisting,
+						input.User,
+					),
+				)
 			},
 		),
 	)
