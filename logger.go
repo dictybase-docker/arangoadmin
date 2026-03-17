@@ -154,12 +154,3 @@ func logEnsureDatabase(logger *slog.Logger) func(EnsureDatabaseResult) IO.IO[F.V
 		}
 	}
 }
-
-func logEnsureGrant(logger *slog.Logger) func(EnsureGrantResult) IO.IO[F.Void] {
-	return func(result EnsureGrantResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logEnsureGrantOutcome(logger, result)
-			return F.VOID
-		}
-	}
-}
