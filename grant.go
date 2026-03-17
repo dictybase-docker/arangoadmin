@@ -32,13 +32,14 @@ var (
 )
 
 // EnsureGrant ensures one user has one grant level on one database.
-func EnsureGrant(_ context.Context, cmd *cli.Command) error {
+func EnsureGrant(ctx context.Context, cmd *cli.Command) error {
 	output := F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
 		IOE.Map[error](func(client driver.Client) EnsureGrantParams {
 			return EnsureGrantParams{
+				Context:  ctx,
 				Client:   client,
 				Username: cmd.String("user"),
 				Database: cmd.String("database"),
@@ -99,7 +100,7 @@ func ensureGrantPipeline(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantRes
 func fetchGrantUser(p EnsureGrantParams) IOE.IOEither[error, GrantState] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.User, error) {
-			return p.Client.User(context.Background(), p.Username)
+			return p.Client.User(p.Context, p.Username)
 		}),
 		IOE.MapLeft[driver.User](fperrors.OnError(
 			fmt.Sprintf("error fetching user %s", p.Username),
@@ -113,7 +114,7 @@ func fetchGrantUser(p EnsureGrantParams) IOE.IOEither[error, GrantState] {
 func fetchGrantDatabase(s GrantState) IOE.IOEither[error, GrantState] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.Database, error) {
-			return s.Params.Client.Database(context.Background(), s.Params.Database)
+			return s.Params.Client.Database(s.Params.Context, s.Params.Database)
 		}),
 		IOE.MapLeft[driver.Database](fperrors.OnError(
 			fmt.Sprintf("error fetching database %s", s.Params.Database),
@@ -129,7 +130,7 @@ func applyGrant(s GrantState) IOE.IOEither[error, EnsureGrantResult] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (F.Void, error) {
 			return F.VOID, s.User.SetDatabaseAccess(
-				context.Background(),
+				s.Params.Context,
 				s.DB,
 				getGrant(s.Params.Grant),
 			)

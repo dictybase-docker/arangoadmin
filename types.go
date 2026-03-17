@@ -118,6 +118,7 @@ type EnsureDatabaseResult = P.Pair[bool, string]
 
 // EnsureGrantParams carries inputs for the ensure-grant command.
 type EnsureGrantParams struct {
+	Context  context.Context
 	Client   driver.Client
 	Username string
 	Database string
