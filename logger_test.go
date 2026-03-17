@@ -8,6 +8,7 @@ import (
 
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -153,4 +154,31 @@ func TestLogCreateDatabaseOutcomeIncludesStatuses(t *testing.T) {
 	require.Contains(output, "status=existing")
 	require.Contains(output, "msg=\"user status\"")
 	require.Contains(output, "username=db-user")
+}
+
+func TestLogEnsureUserOutcome(t *testing.T) {
+	require := require.New(t)
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	result := P.MakePair[EnsureUserStatus, driver.User](UserCreated, testUser{
+		name: "ensure-user",
+	})
+
+	logEnsureUserOutcome(logger, result)
+	output := buf.String()
+
+	require.Contains(output, "msg=\"user status\"")
+	require.Contains(output, "username=ensure-user")
+	require.Contains(output, "status=created")
+}
+
+func TestParseLogLevel(t *testing.T) {
+	assert := assert.New(t)
+	assert.Equal(slog.LevelDebug, parseLogLevel("debug"))
+	assert.Equal(slog.LevelInfo, parseLogLevel("info"))
+	assert.Equal(slog.LevelWarn, parseLogLevel("warn"))
+	assert.Equal(slog.LevelError, parseLogLevel("error"))
+	assert.Equal(slog.LevelDebug, parseLogLevel("DEBUG"))
+	assert.Equal(slog.LevelInfo, parseLogLevel("invalid"))
 }
