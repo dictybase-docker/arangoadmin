@@ -117,22 +117,9 @@ func handleNewDatabase(
 			_, err := p.Client.CreateDatabase(p.Context, p.Database, nil)
 			return P.MakePair(true, p.Database), err
 		}),
-		IOE.OrElse(func(err error) IOE.IOEither[error, EnsureDatabaseResult] {
-			return F.Pipe1(
-				err,
-				F.Ternary(
-					driver.IsConflict,
-					func(_ error) IOE.IOEither[error, EnsureDatabaseResult] {
-						return IOE.Of[error](P.MakePair(false, p.Database))
-					},
-					func(e error) IOE.IOEither[error, EnsureDatabaseResult] {
-						return IOE.Left[EnsureDatabaseResult](
-							fmt.Errorf("error creating database %s: %w", p.Database, e),
-						)
-					},
-				),
-			)
-		}),
+		IOE.MapLeft[EnsureDatabaseResult](fperrors.OnError(
+			fmt.Sprintf("error creating database %s", p.Database),
+		)),
 	)
 }
 
