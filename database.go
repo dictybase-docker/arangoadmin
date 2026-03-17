@@ -53,6 +53,41 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 	return nil
 }
 
+func ensureDatabasePipeline(
+	p EnsureDatabaseParams,
+) IOE.IOEither[error, EnsureDatabaseResult] {
+	return F.Pipe2(
+		IOE.TryCatchError(func() (bool, error) {
+			return p.Client.DatabaseExists(context.Background(), p.Database)
+		}),
+		IOE.MapLeft[bool](fperrors.OnError(
+			fmt.Sprintf("error checking for database %s", p.Database),
+		)),
+		IOE.Chain(F.Ternary(
+			F.Identity[bool],
+			F.Constant1[bool](IOE.Of[error](P.MakePair(false, p.Database))),
+			F.Constant1[bool](createDatabaseForEnsure(p)),
+		)),
+	)
+}
+
+func createDatabaseForEnsure(
+	p EnsureDatabaseParams,
+) IOE.IOEither[error, EnsureDatabaseResult] {
+	return F.Pipe2(
+		IOE.TryCatchError(func() (F.Void, error) {
+			_, err := p.Client.CreateDatabase(context.Background(), p.Database, nil)
+			return F.VOID, err
+		}),
+		IOE.MapLeft[F.Void](fperrors.OnError(
+			fmt.Sprintf("error creating database %s", p.Database),
+		)),
+		IOE.Map[error](func(_ F.Void) EnsureDatabaseResult {
+			return P.MakePair(true, p.Database)
+		}),
+	)
+}
+
 // createDatabasePipeline creates databases and optionally creates a user with grants.
 func createDatabasePipeline(
 	p DatabaseParams,
