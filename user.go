@@ -163,12 +163,12 @@ func UpdateUser(_ context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(updateUserPipeline),
-		foldIOE[F.Void],
+		foldIOE[string],
 	)
 }
 
 // updateUserPipeline updates a user's password if they exist
-func updateUserPipeline(p UserParams) IOE.IOEither[error, F.Void] {
+func updateUserPipeline(p UserParams) IOE.IOEither[error, string] {
 	return F.Pipe3(
 		p,
 		checkUserExists,
@@ -211,25 +211,21 @@ func withExistingUser(p UserParams) func(driver.User) UserForUpdate {
 	}
 }
 
-func updateExistingUser(u UserForUpdate) IOE.IOEither[error, F.Void] {
+func updateExistingUser(u UserForUpdate) IOE.IOEither[error, string] {
 	return F.Pipe2(
-		IOE.TryCatchError(func() (F.Void, error) {
-			return F.VOID, u.User.Update(
+		IOE.TryCatchError(func() (string, error) {
+			return u.Params.Username, u.User.Update(
 				context.Background(),
 				driver.UserOptions{Password: u.Params.Password},
 			)
 		}),
-		IOE.MapLeft[F.Void](fperrors.OnError(
+		IOE.MapLeft[string](fperrors.OnError(
 			fmt.Sprintf("error updating user %s", u.Params.Username),
 		)),
-		IOE.ChainFirstIOK[error](logUserUpdatedStep(u)),
+		IOE.ChainFirstIOK[error](func(username string) IO.IO[F.Void] {
+			return logUserUpdated(u.Params.Logger, username)
+		}),
 	)
-}
-
-func logUserUpdatedStep(u UserForUpdate) func(F.Void) IO.IO[F.Void] {
-	return func(_ F.Void) IO.IO[F.Void] {
-		return logUserUpdated(u.Params.Logger, u.Params.Username)
-	}
 }
 
 type EnsureExistingUserPolicyInput struct {
