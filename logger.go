@@ -9,6 +9,7 @@ import (
 	IO "github.com/IBM/fp-go/v2/io"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
+	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
 
@@ -41,13 +42,12 @@ func parseLogLevel(levelStr string) slog.Level {
 }
 
 func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
-	status := statusFromCreated(P.First(result))
 	logger.Info(
 		"user status",
 		"username",
-		P.Second(result).Name(),
+		F.Pipe2(result, P.Second, userName),
 		"status",
-		status,
+		F.Pipe2(result, P.First, statusFromCreated),
 	)
 }
 
@@ -58,7 +58,7 @@ func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) 
 			"database",
 			P.Second(dbResult),
 			"status",
-			statusFromCreated(P.First(dbResult)),
+			F.Pipe2(dbResult, P.First, statusFromCreated),
 		)
 	}
 
@@ -73,9 +73,9 @@ func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	logger.Info(
 		"user status",
 		"username",
-		P.Second(result).Name(),
+		F.Pipe2(result, P.Second, userName),
 		"status",
-		string(P.First(result)),
+		F.Pipe1(result, P.First),
 	)
 }
 
@@ -85,7 +85,7 @@ func logEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) 
 		"database",
 		P.Second(result),
 		"status",
-		statusFromCreated(P.First(result)),
+		F.Pipe2(result, P.First, statusFromCreated),
 	)
 }
 
@@ -99,6 +99,8 @@ func statusFromCreated(created bool) string {
 		),
 	)
 }
+
+func userName(u driver.User) string { return u.Name() }
 
 func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 	return func() F.Void {
