@@ -45,6 +45,27 @@ type CreateUserResult = P.Pair[bool, driver.User]
 // CreateUserRouteParams carries user existence state alongside create-user params.
 type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 
+// EnsureUserParams carries inputs for the ensure-user command.
+type EnsureUserParams struct {
+	Client   driver.Client
+	Logger   *slog.Logger
+	Username string
+	Password string
+	Policy   string
+}
+
+// EnsureUserStatus is an enum representing the outcome of the ensure-user command.
+type EnsureUserStatus string
+
+const (
+	UserCreated  EnsureUserStatus = "created"
+	UserExisting EnsureUserStatus = "existing"
+	UserUpdated  EnsureUserStatus = "updated"
+)
+
+// EnsureUserResult carries the final outcome status and the driver.User.
+type EnsureUserResult = P.Pair[EnsureUserStatus, driver.User]
+
 // DatabaseParams contains create-database command inputs and dependencies.
 type DatabaseParams struct {
 	WithClient
