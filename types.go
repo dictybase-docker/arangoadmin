@@ -105,6 +105,16 @@ type CreateDatabaseResult struct {
 	Grants    []CreateGrantResult
 }
 
+// EnsureDatabaseParams carries inputs for the ensure-database command.
+type EnsureDatabaseParams struct {
+	Client   driver.Client
+	Logger   *slog.Logger
+	Database string
+}
+
+// EnsureDatabaseResult carries whether the database was newly created and its name.
+type EnsureDatabaseResult = P.Pair[bool, string]
+
 // Pure helper to extract connection params from CLI
 func connParamsFromCmd(cmd *cli.Command) ConnectionParams {
 	return ConnectionParams{
