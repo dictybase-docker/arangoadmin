@@ -266,3 +266,68 @@ func TestEnsureDatabase(t *testing.T) {
 	assert.NoError(err)
 	assert.True(ok, "database should still exist")
 }
+
+func TestEnsureDatabaseError(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+
+	cmd := &cli.Command{
+		Flags: globalFlags(),
+		Commands: []*cli.Command{
+			ensureDatabaseCommand(),
+		},
+	}
+
+	args := []string{
+		"arangoadmin",
+		"--host", "nonexistent-host",
+		"--port", "8529",
+		"ensure-database",
+		"--admin-password", "wrong",
+		"--database", "error-db",
+	}
+
+	err := cmd.Run(ctx, args)
+	assert.Error(err, "should fail with invalid connection params")
+}
+
+func TestEnsureDatabaseParallel(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+
+	dbName := "paralleldb"
+	args := []string{
+		"arangoadmin",
+		"--host", arangoHost,
+		"--port", arangoPort,
+		"ensure-database",
+		"--admin-password", arangoPassword,
+		"--database", dbName,
+	}
+
+	const workers = 5
+	errs := make(chan error, workers)
+
+	for i := 0; i < workers; i++ {
+		go func() {
+			workerCmd := &cli.Command{
+				Flags: globalFlags(),
+				Commands: []*cli.Command{
+					ensureDatabaseCommand(),
+				},
+			}
+			errs <- workerCmd.Run(ctx, args)
+		}()
+	}
+
+	for i := 0; i < workers; i++ {
+		err := <-errs
+		assert.NoError(err, "parallel ensure-database should succeed")
+	}
+
+	client, err := getTestClient()
+	assert.NoError(err)
+	ok, err := client.DatabaseExists(ctx, dbName)
+	assert.NoError(err)
+	assert.True(ok)
+}

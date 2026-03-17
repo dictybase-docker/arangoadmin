@@ -141,6 +141,9 @@ func handleNewDatabase(
 	return F.Pipe1(
 		IOE.TryCatchError(func() (EnsureDatabaseResult, error) {
 			_, err := p.Client.CreateDatabase(context.Background(), p.Database, nil)
+			if driver.IsConflict(err) {
+				return P.MakePair(false, p.Database), nil
+			}
 			return P.MakePair(true, p.Database), err
 		}),
 		IOE.MapLeft[EnsureDatabaseResult](fperrors.OnError(
