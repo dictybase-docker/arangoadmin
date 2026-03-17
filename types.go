@@ -48,7 +48,6 @@ type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 // EnsureUserParams carries inputs for the ensure-user command.
 type EnsureUserParams struct {
 	Client   driver.Client
-	Logger   *slog.Logger
 	Username string
 	Password string
 	Policy   string
@@ -108,7 +107,6 @@ type CreateDatabaseResult struct {
 // EnsureDatabaseParams carries inputs for the ensure-database command.
 type EnsureDatabaseParams struct {
 	Client   driver.Client
-	Logger   *slog.Logger
 	Database string
 }
 

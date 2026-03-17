@@ -238,13 +238,11 @@ func TestEnsureUser(t *testing.T) {
 	})
 	require.NoError(err)
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	user := "ensure_user_test"
 
 	// 1. Create missing user
 	p1 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "pass1",
 		Policy:   "never",
@@ -257,7 +255,6 @@ func TestEnsureUser(t *testing.T) {
 	// 2. Existing + never -> existing
 	p2 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "pass2",
 		Policy:   "never",
@@ -269,7 +266,6 @@ func TestEnsureUser(t *testing.T) {
 	// 3. Existing + always -> updated
 	p3 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "pass3",
 		Policy:   "always",
@@ -281,7 +277,6 @@ func TestEnsureUser(t *testing.T) {
 	// 4. Existing + if-provided + no password -> existing
 	p4 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "",
 		Policy:   "if-provided",
@@ -293,7 +288,6 @@ func TestEnsureUser(t *testing.T) {
 	// 5. Existing + if-provided + password -> updated
 	p5 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "pass5",
 		Policy:   "if-provided",
@@ -305,7 +299,6 @@ func TestEnsureUser(t *testing.T) {
 	// 6. Invalid policy -> existing
 	p6 := EnsureUserParams{
 		Client:   client,
-		Logger:   logger,
 		Username: user,
 		Password: "pass6",
 		Policy:   "invalid",
