@@ -53,6 +53,38 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 	return nil
 }
 
+// EnsureDatabase ensures a single database exists, creating it if missing.
+func EnsureDatabase(_ context.Context, cmd *cli.Command) error {
+	output := F.Pipe6(
+		cmd,
+		connParamsFromCmd,
+		createArangoClient,
+		IOE.Map[error](func(client driver.Client) EnsureDatabaseParams {
+			return EnsureDatabaseParams{
+				Client:   client,
+				Logger:   newLogger(cmd),
+				Database: cmd.String("database"),
+			}
+		}),
+		IOE.Chain(ensureDatabasePipeline),
+		toEither,
+		E.Fold(
+			func(err error) P.Pair[EnsureDatabaseResult, error] {
+				var zero EnsureDatabaseResult
+				return P.MakePair(zero, err)
+			},
+			func(result EnsureDatabaseResult) P.Pair[EnsureDatabaseResult, error] {
+				return P.MakePair[EnsureDatabaseResult, error](result, nil)
+			},
+		),
+	)
+	if err := P.Second(output); err != nil {
+		return err
+	}
+	logEnsureDatabaseOutcome(newLogger(cmd), P.First(output))
+	return nil
+}
+
 func ensureDatabasePipeline(
 	p EnsureDatabaseParams,
 ) IOE.IOEither[error, EnsureDatabaseResult] {
