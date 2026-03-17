@@ -8,9 +8,27 @@ import (
 	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
+	Pred "github.com/IBM/fp-go/v2/predicate"
+	Str "github.com/IBM/fp-go/v2/string"
 	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
+)
+
+var (
+	nonEmptyUsername = F.Pipe1(
+		Str.IsNonEmpty,
+		Pred.ContraMap(func(p EnsureGrantParams) string {
+			return p.Username
+		}),
+	)
+	nonEmptyDatabase = F.Pipe1(
+		Str.IsNonEmpty,
+		Pred.ContraMap(func(p EnsureGrantParams) string {
+			return p.Database
+		}),
+	)
 )
 
 // EnsureGrant ensures one user has one grant level on one database.
@@ -33,7 +51,7 @@ func EnsureGrant(_ context.Context, cmd *cli.Command) error {
 		E.Fold(
 			func(err error) P.Pair[EnsureGrantResult, error] {
 				var zero EnsureGrantResult
-				return P.MakePair[EnsureGrantResult, error](zero, err)
+				return P.MakePair(zero, err)
 			},
 			func(result EnsureGrantResult) P.Pair[EnsureGrantResult, error] {
 				return P.MakePair[EnsureGrantResult, error](result, nil)
@@ -48,13 +66,19 @@ func EnsureGrant(_ context.Context, cmd *cli.Command) error {
 }
 
 func validateGrantParams(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantParams] {
-	if p.Username == "" {
-		return IOE.Left[EnsureGrantParams](fmt.Errorf("username cannot be empty"))
-	}
-	if p.Database == "" {
-		return IOE.Left[EnsureGrantParams](fmt.Errorf("database cannot be empty"))
-	}
-	return IOE.Of[error](p)
+	return F.Pipe3(
+		p,
+		O.FromPredicate(nonEmptyUsername),
+		IOE.FromOption[EnsureGrantParams](func() error {
+			return fmt.Errorf("username cannot be empty")
+		}),
+		IOE.Chain(F.Flow2(
+			O.FromPredicate(nonEmptyDatabase),
+			IOE.FromOption[EnsureGrantParams](func() error {
+				return fmt.Errorf("database cannot be empty")
+			}),
+		)),
+	)
 }
 
 func ensureGrantPipeline(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantResult] {
