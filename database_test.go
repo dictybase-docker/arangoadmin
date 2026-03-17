@@ -227,3 +227,42 @@ func TestCreateDatabasePipelineWithUser(t *testing.T) {
 	require.NoError(err)
 	require.True(ok, "user should exist")
 }
+
+func TestEnsureDatabase(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+
+	cmd := &cli.Command{
+		Flags: globalFlags(),
+		Commands: []*cli.Command{
+			ensureDatabaseCommand(),
+		},
+	}
+
+	dbName := "ensuredb"
+	args := []string{
+		"arangoadmin",
+		"--host", arangoHost,
+		"--port", arangoPort,
+		"ensure-database",
+		"--admin-password", arangoPassword,
+		"--database", dbName,
+	}
+
+	// 1. First run: missing database -> created
+	err := cmd.Run(ctx, args)
+	assert.NoError(err)
+
+	client, err := getTestClient()
+	assert.NoError(err)
+	ok, err := client.DatabaseExists(ctx, dbName)
+	assert.NoError(err)
+	assert.True(ok, "database should be created")
+
+	// 2. Second run: existing database -> existing
+	err = cmd.Run(ctx, args)
+	assert.NoError(err)
+	ok, err = client.DatabaseExists(ctx, dbName)
+	assert.NoError(err)
+	assert.True(ok, "database should still exist")
+}
