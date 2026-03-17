@@ -131,11 +131,9 @@ func (u errorUser) SetDatabaseAccess(_ context.Context, _ driver.Database, _ dri
 
 func TestApplyGrantFailure(t *testing.T) {
 	assert := assert.New(t)
-	ctx := context.Background()
 
 	state := GrantState{
 		Params: EnsureGrantParams{
-			Context:  ctx,
 			Database: "test-db",
 		},
 		User: errorUser{},
