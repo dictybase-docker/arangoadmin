@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	E "github.com/IBM/fp-go/v2/either"
+	EQ "github.com/IBM/fp-go/v2/eq"
 	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	P "github.com/IBM/fp-go/v2/pair"
+	PR "github.com/IBM/fp-go/v2/predicate"
 	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
@@ -229,6 +231,177 @@ func logUserUpdatedStep(u UserForUpdate) func(F.Void) IO.IO[F.Void] {
 	return func(_ F.Void) IO.IO[F.Void] {
 		return logUserUpdated(u.Params.Logger, u.Params.Username)
 	}
+}
+
+type EnsureExistingUserPolicyInput struct {
+	Params EnsureUserParams
+	User   driver.User
+}
+
+// EnsureUser adds a new user or updates an existing one based on the policy.
+func EnsureUser(_ context.Context, cmd *cli.Command) error {
+	output := F.Pipe6(
+		cmd,
+		connParamsFromCmd,
+		createArangoClient,
+		IOE.Map[error](func(client driver.Client) EnsureUserParams {
+			return EnsureUserParams{
+				Client:   client,
+				Logger:   newLogger(cmd),
+				Username: cmd.String("user"),
+				Password: cmd.String("password"),
+				Policy:   cmd.String("password-policy"),
+			}
+		}),
+		IOE.Chain(ensureUserPipeline),
+		toEither,
+		E.Fold(
+			func(err error) P.Pair[EnsureUserResult, error] {
+				var zero EnsureUserResult
+				return P.MakePair(zero, err)
+			},
+			func(result EnsureUserResult) P.Pair[EnsureUserResult, error] {
+				return P.MakePair[EnsureUserResult, error](result, nil)
+			},
+		),
+	)
+	if err := P.Second(output); err != nil {
+		return err
+	}
+	logEnsureUserOutcome(newLogger(cmd), P.First(output))
+	return nil
+}
+
+func ensureUserPipeline(p EnsureUserParams) IOE.IOEither[error, EnsureUserResult] {
+	return F.Pipe3(
+		p,
+		checkUserExistenceForEnsure,
+		IOE.Map[error](func(exists bool) P.Pair[bool, EnsureUserParams] {
+			return P.MakePair(exists, p)
+		}),
+		IOE.Chain(routeEnsureUser),
+	)
+}
+
+func checkUserExistenceForEnsure(p EnsureUserParams) IOE.IOEither[error, bool] {
+	return F.Pipe1(
+		IOE.TryCatchError(func() (bool, error) {
+			return p.Client.UserExists(context.Background(), p.Username)
+		}),
+		IOE.MapLeft[bool](fperrors.OnError(
+			fmt.Sprintf("error checking for user %s", p.Username),
+		)),
+	)
+}
+
+func routeEnsureUser(
+	params P.Pair[bool, EnsureUserParams],
+) IOE.IOEither[error, EnsureUserResult] {
+	return F.Pipe1(
+		params,
+		F.Ternary(
+			P.First[bool, EnsureUserParams],
+			ensureExistingUserFlow,
+			ensureNewUserFlow,
+		),
+	)
+}
+
+func ensureNewUserFlow(
+	params P.Pair[bool, EnsureUserParams],
+) IOE.IOEither[error, EnsureUserResult] {
+	p := P.Second(params)
+	return F.Pipe2(
+		IOE.TryCatchError(func() (driver.User, error) {
+			return p.Client.CreateUser(
+				context.Background(),
+				p.Username,
+				&driver.UserOptions{Password: p.Password},
+			)
+		}),
+		IOE.MapLeft[driver.User](fperrors.OnError(
+			fmt.Sprintf("error creating user %s", p.Username),
+		)),
+		IOE.Map[error](func(user driver.User) EnsureUserResult {
+			return P.MakePair(UserCreated, user)
+		}),
+	)
+}
+
+func ensurePolicyEq(expected string) PR.Predicate[string] {
+	return EQ.Equals(EQ.FromStrictEquals[string]())(expected)
+}
+
+func ensureExistingUserFlow(
+	params P.Pair[bool, EnsureUserParams],
+) IOE.IOEither[error, EnsureUserResult] {
+	return F.Pipe3(
+		P.Second(params),
+		fetchExistingEnsureUser,
+		IOE.Map[error](func(user driver.User) EnsureExistingUserPolicyInput {
+			return EnsureExistingUserPolicyInput{
+				Params: P.Second(params),
+				User:   user,
+			}
+		}),
+		IOE.Chain(applyExistingUserPolicy),
+	)
+}
+
+func fetchExistingEnsureUser(p EnsureUserParams) IOE.IOEither[error, driver.User] {
+	return F.Pipe1(
+		IOE.TryCatchError(func() (driver.User, error) {
+			return p.Client.User(context.Background(), p.Username)
+		}),
+		IOE.MapLeft[driver.User](fperrors.OnError(
+			fmt.Sprintf("error fetching user %s", p.Username),
+		)),
+	)
+}
+
+func applyExistingUserPolicy(
+	input EnsureExistingUserPolicyInput,
+) IOE.IOEither[error, EnsureUserResult] {
+	p := input.Params
+	hasProvidedPassword := func(_ string) bool { return p.Password != "" }
+	shouldUpdatePassword := F.Pipe2(
+		ensurePolicyEq("if-provided"),
+		PR.And(hasProvidedPassword),
+		PR.Or(ensurePolicyEq("always")),
+	)
+
+	return F.Pipe1(
+		p.Policy,
+		F.Ternary(
+			shouldUpdatePassword,
+			func(_ string) IOE.IOEither[error, EnsureUserResult] {
+				return updateEnsureUserPassword(p, input.User)
+			},
+			func(_ string) IOE.IOEither[error, EnsureUserResult] {
+				return IOE.Of[error](P.MakePair(UserExisting, input.User))
+			},
+		),
+	)
+}
+
+func updateEnsureUserPassword(
+	p EnsureUserParams,
+	user driver.User,
+) IOE.IOEither[error, EnsureUserResult] {
+	return F.Pipe2(
+		IOE.TryCatchError(func() (driver.User, error) {
+			return user, user.Update(
+				context.Background(),
+				driver.UserOptions{Password: p.Password},
+			)
+		}),
+		IOE.MapLeft[driver.User](fperrors.OnError(
+			fmt.Sprintf("error updating user %s", p.Username),
+		)),
+		IOE.Map[error](func(u driver.User) EnsureUserResult {
+			return P.MakePair(UserUpdated, u)
+		}),
+	)
 }
 
 // getGrant converts a grant string to the driver.Grant type
