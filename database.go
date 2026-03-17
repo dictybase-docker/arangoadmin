@@ -62,7 +62,6 @@ func EnsureDatabase(_ context.Context, cmd *cli.Command) error {
 		IOE.Map[error](func(client driver.Client) EnsureDatabaseParams {
 			return EnsureDatabaseParams{
 				Client:   client,
-				Logger:   newLogger(cmd),
 				Database: cmd.String("database"),
 			}
 		}),

@@ -242,7 +242,6 @@ func EnsureUser(_ context.Context, cmd *cli.Command) error {
 		IOE.Map[error](func(client driver.Client) EnsureUserParams {
 			return EnsureUserParams{
 				Client:   client,
-				Logger:   newLogger(cmd),
 				Username: cmd.String("user"),
 				Password: cmd.String("password"),
 				Policy:   cmd.String("password-policy"),
