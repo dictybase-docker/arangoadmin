@@ -18,6 +18,7 @@ func main() {
 			createDatabaseCommand(),
 			createUserCommand(),
 			updateUserCommand(),
+			ensureUserCommand(),
 		},
 	}
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -161,6 +162,44 @@ func updateUserCommand() *cli.Command {
 				Aliases:  []string{"pw"},
 				Usage:    "new arangodb password for the user",
 				Required: true,
+			},
+		},
+	}
+}
+
+func ensureUserCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "ensure-user",
+		Usage:  "create or update a user for accessing arangodb",
+		Action: EnsureUser,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "admin-user",
+				Aliases: []string{"au"},
+				Usage:   "arangodb admin user",
+				Value:   "root",
+			},
+			&cli.StringFlag{
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
+			},
+			&cli.StringFlag{
+				Name:     "user",
+				Aliases:  []string{"u"},
+				Usage:    "arangodb user",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "password",
+				Aliases:  []string{"pw"},
+				Usage:    "arangodb password for user",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:  "password-policy",
+				Usage: "policy for updating password (never, if-provided, always)",
+				Value: "never",
 			},
 		},
 	}
