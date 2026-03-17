@@ -86,37 +86,66 @@ func EnsureDatabase(_ context.Context, cmd *cli.Command) error {
 }
 
 func ensureDatabasePipeline(
-	p EnsureDatabaseParams,
+	params EnsureDatabaseParams,
 ) IOE.IOEither[error, EnsureDatabaseResult] {
-	return F.Pipe2(
+	return F.Pipe3(
+		params,
+		checkDatabaseExistenceForEnsure,
+		IOE.Map[error](func(exists bool) P.Pair[bool, EnsureDatabaseParams] {
+			return P.MakePair(exists, params)
+		}),
+		IOE.Chain(routeEnsureDatabase),
+	)
+}
+
+func checkDatabaseExistenceForEnsure(
+	params EnsureDatabaseParams,
+) IOE.IOEither[error, bool] {
+	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
-			return p.Client.DatabaseExists(context.Background(), p.Database)
+			return params.Client.DatabaseExists(
+				context.Background(),
+				params.Database,
+			)
 		}),
 		IOE.MapLeft[bool](fperrors.OnError(
-			fmt.Sprintf("error checking for database %s", p.Database),
-		)),
-		IOE.Chain(F.Ternary(
-			F.Identity[bool],
-			F.Constant1[bool](IOE.Of[error](P.MakePair(false, p.Database))),
-			F.Constant1[bool](createDatabaseForEnsure(p)),
+			fmt.Sprintf("error checking for database %s", params.Database),
 		)),
 	)
 }
 
-func createDatabaseForEnsure(
-	p EnsureDatabaseParams,
+func routeEnsureDatabase(
+	params P.Pair[bool, EnsureDatabaseParams],
 ) IOE.IOEither[error, EnsureDatabaseResult] {
-	return F.Pipe2(
-		IOE.TryCatchError(func() (F.Void, error) {
+	return F.Pipe1(
+		params,
+		F.Ternary(
+			P.First[bool, EnsureDatabaseParams],
+			handleExistingDatabase,
+			handleNewDatabase,
+		),
+	)
+}
+
+func handleExistingDatabase(
+	params P.Pair[bool, EnsureDatabaseParams],
+) IOE.IOEither[error, EnsureDatabaseResult] {
+	p := P.Second(params)
+	return IOE.Of[error](P.MakePair(false, p.Database))
+}
+
+func handleNewDatabase(
+	params P.Pair[bool, EnsureDatabaseParams],
+) IOE.IOEither[error, EnsureDatabaseResult] {
+	p := P.Second(params)
+	return F.Pipe1(
+		IOE.TryCatchError(func() (EnsureDatabaseResult, error) {
 			_, err := p.Client.CreateDatabase(context.Background(), p.Database, nil)
-			return F.VOID, err
+			return P.MakePair(true, p.Database), err
 		}),
-		IOE.MapLeft[F.Void](fperrors.OnError(
+		IOE.MapLeft[EnsureDatabaseResult](fperrors.OnError(
 			fmt.Sprintf("error creating database %s", p.Database),
 		)),
-		IOE.Map[error](func(_ F.Void) EnsureDatabaseResult {
-			return P.MakePair(true, p.Database)
-		}),
 	)
 }
 
@@ -161,21 +190,18 @@ func createSingleDatabase(p SingleDBParams) IOE.IOEither[error, CreateSingleDBRe
 
 // createDatabase creates a single database and returns creation status.
 func createDatabase(p SingleDBParams) IOE.IOEither[error, CreateSingleDBResult] {
-	return F.Pipe2(
-		IOE.TryCatchError(func() (F.Void, error) {
+	return F.Pipe1(
+		IOE.TryCatchError(func() (CreateSingleDBResult, error) {
 			_, err := p.Client.CreateDatabase(
 				context.Background(),
 				p.Dbname,
 				nil,
 			)
-			return F.VOID, err
+			return P.MakePair(true, p.Dbname), err
 		}),
-		IOE.MapLeft[F.Void](fperrors.OnError(
+		IOE.MapLeft[CreateSingleDBResult](fperrors.OnError(
 			fmt.Sprintf("error creating database %s", p.Dbname),
 		)),
-		IOE.Map[error](func(_ F.Void) CreateSingleDBResult {
-			return P.MakePair(true, p.Dbname)
-		}),
 	)
 }
 
