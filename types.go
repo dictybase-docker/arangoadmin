@@ -34,17 +34,8 @@ type UserParams struct {
 	Username, Password string
 }
 
-// CreateUserParams is a narrower input for the create-user pipeline.
-type CreateUserParams struct {
-	Client             driver.Client
-	Username, Password string
-}
-
 // CreateUserResult carries whether the user was newly created and the user itself.
 type CreateUserResult = P.Pair[bool, driver.User]
-
-// CreateUserRouteParams carries user existence state alongside create-user params.
-type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 
 // EnsureUserParams carries inputs for the ensure-user command.
 type EnsureUserParams struct {
@@ -66,45 +57,6 @@ const (
 
 // EnsureUserResult carries the final outcome status and the driver.User.
 type EnsureUserResult = P.Pair[EnsureUserStatus, driver.User]
-
-// DatabaseParams contains create-database command inputs and dependencies.
-type DatabaseParams struct {
-	WithClient
-	Databases          []string
-	Username, Password string // optional user creation
-	Grant              string
-}
-
-// SingleDBParams carries what's needed to create one database
-type SingleDBParams struct {
-	Client driver.Client
-	Logger *slog.Logger
-	Dbname string
-}
-
-// GrantDBParams carries what's needed to grant a user access to one database
-type GrantDBParams struct {
-	Client driver.Client
-	Logger *slog.Logger
-	Dbname string
-	Grant  string
-	User   driver.User
-}
-
-// CreateSingleDBResult carries whether a database was newly created and its name.
-type CreateSingleDBResult = P.Pair[bool, string]
-
-// CreateGrantResult carries database name and applied grant.
-type CreateGrantResult = P.Pair[string, string]
-
-// CreateDatabaseResult carries outcomes for database creation, optional user creation,
-// and grants applied during create-database command execution.
-type CreateDatabaseResult struct {
-	Databases []CreateSingleDBResult
-	HasUser   bool
-	User      CreateUserResult
-	Grants    []CreateGrantResult
-}
 
 // EnsureDatabaseParams carries inputs for the ensure-database command.
 type EnsureDatabaseParams struct {
