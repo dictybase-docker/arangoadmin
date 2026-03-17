@@ -60,7 +60,13 @@ func EnsureGrant(_ context.Context, cmd *cli.Command) error {
 	if err := P.Second(output); err != nil {
 		return err
 	}
-	logEnsureGrantOutcome(newLogger(cmd), P.First(output))
+	newLogger(cmd).Info(
+		"grant status",
+		"database",
+		F.Pipe2(output, P.First, P.First),
+		"grant",
+		F.Pipe2(output, P.First, P.Second),
+	)
 	return nil
 }
 
