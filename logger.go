@@ -69,6 +69,16 @@ func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) 
 	logCreateUserOutcome(logger, result.User)
 }
 
+func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
+	logger.Info(
+		"user status",
+		"username",
+		P.Second(result).Name(),
+		"status",
+		string(P.First(result)),
+	)
+}
+
 func statusFromCreated(created bool) string {
 	return F.Pipe2(
 		created,
