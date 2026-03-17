@@ -54,13 +54,14 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 }
 
 // EnsureDatabase ensures a single database exists, creating it if missing.
-func EnsureDatabase(_ context.Context, cmd *cli.Command) error {
+func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
 	output := F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
 		IOE.Map[error](func(client driver.Client) EnsureDatabaseParams {
 			return EnsureDatabaseParams{
+				Context:  ctx,
 				Client:   client,
 				Database: cmd.String("database"),
 			}
@@ -103,7 +104,7 @@ func checkDatabaseExistenceForEnsure(
 	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
 			return params.Client.DatabaseExists(
-				context.Background(),
+				params.Context,
 				params.Database,
 			)
 		}),
@@ -139,7 +140,7 @@ func handleNewDatabase(
 	p := P.Second(params)
 	return F.Pipe1(
 		IOE.TryCatchError(func() (EnsureDatabaseResult, error) {
-			_, err := p.Client.CreateDatabase(context.Background(), p.Database, nil)
+			_, err := p.Client.CreateDatabase(p.Context, p.Database, nil)
 			if driver.IsConflict(err) {
 				return P.MakePair(false, p.Database), nil
 			}

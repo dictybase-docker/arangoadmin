@@ -234,13 +234,14 @@ type EnsureExistingUserPolicyInput struct {
 }
 
 // EnsureUser adds a new user or updates an existing one based on the policy.
-func EnsureUser(_ context.Context, cmd *cli.Command) error {
+func EnsureUser(ctx context.Context, cmd *cli.Command) error {
 	output := F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
 		IOE.Map[error](func(client driver.Client) EnsureUserParams {
 			return EnsureUserParams{
+				Context:  ctx,
 				Client:   client,
 				Username: cmd.String("user"),
 				Password: cmd.String("password"),
@@ -281,7 +282,7 @@ func checkUserExistenceForEnsure(params EnsureUserParams) IOE.IOEither[error, bo
 	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
 			return params.Client.UserExists(
-				context.Background(),
+				params.Context,
 				params.Username,
 			)
 		}),
@@ -311,7 +312,7 @@ func ensureNewUserFlow(
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.User, error) {
 			return p.Client.CreateUser(
-				context.Background(),
+				p.Context,
 				p.Username,
 				&driver.UserOptions{Password: p.Password},
 			)
@@ -344,7 +345,7 @@ func ensureExistingUserFlow(
 func fetchExistingEnsureUser(p EnsureUserParams) IOE.IOEither[error, driver.User] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (driver.User, error) {
-			return p.Client.User(context.Background(), p.Username)
+			return p.Client.User(p.Context, p.Username)
 		}),
 		IOE.MapLeft[driver.User](fperrors.OnError(
 			fmt.Sprintf("error fetching user %s", p.Username),
@@ -396,7 +397,7 @@ func updateEnsureUserPassword(
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.User, error) {
 			return user, user.Update(
-				context.Background(),
+				p.Context,
 				driver.UserOptions{Password: p.Password},
 			)
 		}),

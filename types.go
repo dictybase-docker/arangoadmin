@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 
 	P "github.com/IBM/fp-go/v2/pair"
@@ -47,6 +48,7 @@ type CreateUserRouteParams = P.Pair[bool, CreateUserParams]
 
 // EnsureUserParams carries inputs for the ensure-user command.
 type EnsureUserParams struct {
+	Context  context.Context
 	Client   driver.Client
 	Username string
 	Password string
@@ -106,6 +108,7 @@ type CreateDatabaseResult struct {
 
 // EnsureDatabaseParams carries inputs for the ensure-database command.
 type EnsureDatabaseParams struct {
+	Context  context.Context
 	Client   driver.Client
 	Database string
 }
