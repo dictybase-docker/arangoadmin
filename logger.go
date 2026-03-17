@@ -89,6 +89,16 @@ func logEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) 
 	)
 }
 
+func logEnsureGrantOutcome(logger *slog.Logger, result EnsureGrantResult) {
+	logger.Info(
+		"grant status",
+		"database",
+		P.First(result),
+		"grant",
+		P.Second(result),
+	)
+}
+
 func statusFromCreated(created bool) string {
 	return F.Pipe2(
 		created,
@@ -140,6 +150,15 @@ func logEnsureDatabase(logger *slog.Logger) func(EnsureDatabaseResult) IO.IO[F.V
 	return func(result EnsureDatabaseResult) IO.IO[F.Void] {
 		return func() F.Void {
 			logEnsureDatabaseOutcome(logger, result)
+			return F.VOID
+		}
+	}
+}
+
+func logEnsureGrant(logger *slog.Logger) func(EnsureGrantResult) IO.IO[F.Void] {
+	return func(result EnsureGrantResult) IO.IO[F.Void] {
+		return func() F.Void {
+			logEnsureGrantOutcome(logger, result)
 			return F.VOID
 		}
 	}
