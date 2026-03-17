@@ -225,3 +225,80 @@ func TestUpdateUserPipelineNonExistent(t *testing.T) {
 	result := toEither(updateUserPipeline(p))
 	require.True(E.IsLeft(result), "updateUserPipeline should fail for non-existent user")
 }
+
+func TestEnsureUser(t *testing.T) {
+	require := require.New(t)
+
+	client, err := getClient(&ClientParams{
+		Host:     arangoHost,
+		Port:     arangoPort,
+		User:     "root",
+		Pass:     arangoPassword,
+		IsSecure: false,
+	})
+	require.NoError(err)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	user := "ensure_user_test"
+
+	// 1. Create missing user
+	p1 := EnsureUserParams{
+		Client:   client,
+		Logger:   logger,
+		Username: user,
+		Password: "pass1",
+		Policy:   "never",
+	}
+	res1, err := toTuple(ensureUserPipeline(p1))
+	require.NoError(err)
+	require.Equal(UserCreated, P.First(res1))
+	require.Equal(user, P.Second(res1).Name())
+
+	// 2. Existing + never -> existing
+	p2 := EnsureUserParams{
+		Client:   client,
+		Logger:   logger,
+		Username: user,
+		Password: "pass2",
+		Policy:   "never",
+	}
+	res2, err := toTuple(ensureUserPipeline(p2))
+	require.NoError(err)
+	require.Equal(UserExisting, P.First(res2))
+
+	// 3. Existing + always -> updated
+	p3 := EnsureUserParams{
+		Client:   client,
+		Logger:   logger,
+		Username: user,
+		Password: "pass3",
+		Policy:   "always",
+	}
+	res3, err := toTuple(ensureUserPipeline(p3))
+	require.NoError(err)
+	require.Equal(UserUpdated, P.First(res3))
+
+	// 4. Existing + if-provided + no password -> existing
+	p4 := EnsureUserParams{
+		Client:   client,
+		Logger:   logger,
+		Username: user,
+		Password: "",
+		Policy:   "if-provided",
+	}
+	res4, err := toTuple(ensureUserPipeline(p4))
+	require.NoError(err)
+	require.Equal(UserExisting, P.First(res4))
+
+	// 5. Existing + if-provided + password -> updated
+	p5 := EnsureUserParams{
+		Client:   client,
+		Logger:   logger,
+		Username: user,
+		Password: "pass5",
+		Policy:   "if-provided",
+	}
+	res5, err := toTuple(ensureUserPipeline(p5))
+	require.NoError(err)
+	require.Equal(UserUpdated, P.First(res5))
+}
