@@ -116,6 +116,25 @@ type EnsureDatabaseParams struct {
 // EnsureDatabaseResult carries whether the database was newly created and its name.
 type EnsureDatabaseResult = P.Pair[bool, string]
 
+// EnsureGrantParams carries inputs for the ensure-grant command.
+type EnsureGrantParams struct {
+	Context  context.Context
+	Client   driver.Client
+	Username string
+	Database string
+	Grant    string
+}
+
+// EnsureGrantResult carries database name and applied grant.
+type EnsureGrantResult = P.Pair[string, string] // dbname, grant
+
+// GrantState carries parameters and resolved ArangoDB objects for granting access.
+type GrantState struct {
+	Params EnsureGrantParams
+	User   driver.User
+	DB     driver.Database
+}
+
 // Pure helper to extract connection params from CLI
 func connParamsFromCmd(cmd *cli.Command) ConnectionParams {
 	return ConnectionParams{

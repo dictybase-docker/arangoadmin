@@ -20,6 +20,7 @@ func main() {
 			updateUserCommand(),
 			ensureUserCommand(),
 			ensureDatabaseCommand(),
+			ensureGrantCommand(),
 		},
 	}
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -228,6 +229,45 @@ func ensureDatabaseCommand() *cli.Command {
 				Aliases:  []string{"db"},
 				Usage:    "name of arangodb database",
 				Required: true,
+			},
+		},
+	}
+}
+
+func ensureGrantCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "ensure-grant",
+		Usage:  "ensure a user has a specific grant level on a database",
+		Action: EnsureGrant,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "admin-user",
+				Aliases: []string{"au"},
+				Usage:   "arangodb admin user",
+				Value:   "root",
+			},
+			&cli.StringFlag{
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
+			},
+			&cli.StringFlag{
+				Name:     "user",
+				Aliases:  []string{"u"},
+				Usage:    "arangodb user",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "database",
+				Aliases:  []string{"db"},
+				Usage:    "name of arangodb database",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:    "grant",
+				Aliases: []string{"g"},
+				Usage:   "level of access for arangodb user (rw, ro, none)",
+				Value:   "rw",
 			},
 		},
 	}
