@@ -272,4 +272,3 @@ func ensureGrantCommand() *cli.Command {
 		},
 	}
 }
-
