@@ -10,6 +10,7 @@ import (
 	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v3"
 )
 
 type testUser struct {
@@ -181,4 +182,43 @@ func TestParseLogLevel(t *testing.T) {
 	assert.Equal(slog.LevelError, parseLogLevel("error"))
 	assert.Equal(slog.LevelDebug, parseLogLevel("DEBUG"))
 	assert.Equal(slog.LevelInfo, parseLogLevel("invalid"))
+}
+
+func TestNewLogger(t *testing.T) {
+	assert := assert.New(t)
+
+	// Test text format and various levels
+	cmd := &cli.Command{
+		Flags: globalFlags(),
+	}
+	ctx := context.Background()
+
+	levels := []string{"debug", "info", "warn", "error"}
+	for _, level := range levels {
+		args := []string{"arangoadmin", "--log-format", "text", "--log-level", level}
+		err := cmd.Run(ctx, args)
+		assert.NoError(err)
+		logger := newLogger(cmd)
+		assert.NotNil(logger)
+	}
+
+	// Test JSON format (default)
+	args := []string{"arangoadmin", "--log-format", "json"}
+	_ = cmd.Run(ctx, args)
+	logger := newLogger(cmd)
+	assert.NotNil(logger)
+}
+
+func TestLogEnsureGrant(t *testing.T) {
+	require := require.New(t)
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	result := P.MakePair("grant-db", "ro")
+	logEnsureGrant(logger)(result)()
+
+	output := buf.String()
+	require.Contains(output, "msg=\"grant status\"")
+	require.Contains(output, "database=grant-db")
+	require.Contains(output, "grant=ro")
 }
