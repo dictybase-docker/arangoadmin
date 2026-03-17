@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -289,4 +290,66 @@ func TestEnsureDatabaseError(t *testing.T) {
 
 	err := cmd.Run(ctx, args)
 	assert.Error(err, "should fail with invalid connection params")
+}
+
+type mockClient struct {
+	driver.Client
+	userExistsError error
+	userError       error
+	createUserError error
+	userExists      bool
+}
+
+func (m *mockClient) UserExists(_ context.Context, _ string) (bool, error) {
+	return m.userExists, m.userExistsError
+}
+
+func (m *mockClient) User(_ context.Context, _ string) (driver.User, error) {
+	return nil, m.userError
+}
+
+func (m *mockClient) CreateUser(_ context.Context, _ string, _ *driver.UserOptions) (driver.User, error) {
+	return nil, m.createUserError
+}
+
+func (m *mockClient) Database(_ context.Context, _ string) (driver.Database, error) {
+	return nil, nil // Not used for this test
+}
+
+func TestCreateUserAndGrantErrors(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	// 1. UserExists fails
+	m1 := &mockClient{userExistsError: fmt.Errorf("user exists fail")}
+	p1 := DatabaseParams{
+		WithClient: WithClient{Client: m1},
+		Username:   "test",
+	}
+	res1 := toEither(createUserAndGrant(p1))
+	assert.True(E.IsLeft(res1))
+	_, err1 := E.UnwrapError(res1)
+	require.Contains(err1.Error(), "user exists fail")
+
+	// 2. User exists but fetching it fails
+	m2 := &mockClient{userExists: true, userError: fmt.Errorf("user fetch fail")}
+	p2 := DatabaseParams{
+		WithClient: WithClient{Client: m2},
+		Username:   "test",
+	}
+	res2 := toEither(createUserAndGrant(p2))
+	assert.True(E.IsLeft(res2))
+	_, err2 := E.UnwrapError(res2)
+	require.Contains(err2.Error(), "user fetch fail")
+
+	// 3. User does not exist and creation fails
+	m3 := &mockClient{userExists: false, createUserError: fmt.Errorf("user create fail")}
+	p3 := DatabaseParams{
+		WithClient: WithClient{Client: m3},
+		Username:   "test",
+	}
+	res3 := toEither(createUserAndGrant(p3))
+	assert.True(E.IsLeft(res3))
+	_, err3 := E.UnwrapError(res3)
+	require.Contains(err3.Error(), "user create fail")
 }
