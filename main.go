@@ -19,6 +19,7 @@ func main() {
 			createUserCommand(),
 			updateUserCommand(),
 			ensureUserCommand(),
+			ensureDatabaseCommand(),
 		},
 	}
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
@@ -200,6 +201,33 @@ func ensureUserCommand() *cli.Command {
 				Name:  "password-policy",
 				Usage: "policy for updating password (never, if-provided, always)",
 				Value: "never",
+			},
+		},
+	}
+}
+
+func ensureDatabaseCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "ensure-database",
+		Usage:  "create a single arangodb database if missing",
+		Action: EnsureDatabase,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "admin-user",
+				Aliases: []string{"au"},
+				Usage:   "arangodb admin user",
+				Value:   "root",
+			},
+			&cli.StringFlag{
+				Name:    "admin-password",
+				Aliases: []string{"ap"},
+				Usage:   "arangodb admin password",
+			},
+			&cli.StringFlag{
+				Name:     "database",
+				Aliases:  []string{"db"},
+				Usage:    "name of arangodb database",
+				Required: true,
 			},
 		},
 	}
