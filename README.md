@@ -17,6 +17,7 @@ COMMANDS:
      create-user      create a new user for accessing arangodb
      update-user      update an existing user's password for accessing arangodb
      ensure-user      create or update a user for accessing arangodb
+     ensure-database  create a single arangodb database if missing
      help, h          Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -88,4 +89,17 @@ OPTIONS:
    --user value, -u value              arangodb user
    --password value, --pw value        arangodb password for user
    --password-policy value             policy for updating password (never, if-provided, always) (default: "never")
+```
+
+```
+NAME:
+   arangoadmin ensure-database - create a single arangodb database if missing
+
+USAGE:
+   arangoadmin ensure-database [command options] [arguments...]
+
+OPTIONS:
+   --admin-user value, --au value      arangodb admin user (default: "root")
+   --admin-password value, --ap value  arangodb admin password
+   --database value, --db value        name of arangodb database
 ```
