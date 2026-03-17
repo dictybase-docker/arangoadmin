@@ -79,6 +79,16 @@ func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	)
 }
 
+func logEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) {
+	logger.Info(
+		"database status",
+		"database",
+		P.Second(result),
+		"status",
+		statusFromCreated(P.First(result)),
+	)
+}
+
 func statusFromCreated(created bool) string {
 	return F.Pipe2(
 		created,
