@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	fperrors "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
@@ -17,7 +16,8 @@ import (
 
 // CreateDatabase creates one or more databases with optional user and grants
 func CreateDatabase(_ context.Context, cmd *cli.Command) error {
-	output := F.Pipe6(
+	logger := newLogger(cmd)
+	return F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
@@ -25,7 +25,7 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 			return DatabaseParams{
 				WithClient: WithClient{
 					Client: client,
-					Logger: newLogger(cmd),
+					Logger: logger,
 				},
 				Username:  cmd.String("user"),
 				Password:  cmd.String("password"),
@@ -34,28 +34,15 @@ func CreateDatabase(_ context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(createDatabasePipeline),
-		toEither,
-		E.Fold(
-			func(err error) P.Pair[CreateDatabaseResult, error] {
-				var zero CreateDatabaseResult
-				return P.MakePair(zero, err)
-			},
-			func(result CreateDatabaseResult) P.Pair[CreateDatabaseResult, error] {
-				return P.MakePair[CreateDatabaseResult, error](result, nil)
-			},
-		),
+		IOE.ChainFirstIOK[error](logCreateDatabase(logger)),
+		foldIOE[CreateDatabaseResult],
 	)
-	if err := P.Second(output); err != nil {
-		return err
-	}
-
-	logCreateDatabaseOutcome(newLogger(cmd), P.First(output))
-	return nil
 }
 
 // EnsureDatabase ensures a single database exists, creating it if missing.
 func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
-	output := F.Pipe6(
+	logger := newLogger(cmd)
+	return F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
@@ -67,22 +54,9 @@ func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(ensureDatabasePipeline),
-		toEither,
-		E.Fold(
-			func(err error) P.Pair[EnsureDatabaseResult, error] {
-				var zero EnsureDatabaseResult
-				return P.MakePair(zero, err)
-			},
-			func(result EnsureDatabaseResult) P.Pair[EnsureDatabaseResult, error] {
-				return P.MakePair[EnsureDatabaseResult, error](result, nil)
-			},
-		),
+		IOE.ChainFirstIOK[error](logEnsureDatabase(logger)),
+		foldIOE[EnsureDatabaseResult],
 	)
-	if err := P.Second(output); err != nil {
-		return err
-	}
-	logEnsureDatabaseOutcome(newLogger(cmd), P.First(output))
-	return nil
 }
 
 func ensureDatabasePipeline(
@@ -141,9 +115,6 @@ func handleNewDatabase(
 	return F.Pipe1(
 		IOE.TryCatchError(func() (EnsureDatabaseResult, error) {
 			_, err := p.Client.CreateDatabase(p.Context, p.Database, nil)
-			if driver.IsConflict(err) {
-				return P.MakePair(false, p.Database), nil
-			}
 			return P.MakePair(true, p.Database), err
 		}),
 		IOE.MapLeft[EnsureDatabaseResult](fperrors.OnError(

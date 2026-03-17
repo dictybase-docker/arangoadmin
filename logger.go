@@ -108,3 +108,39 @@ func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
 		return F.VOID
 	}
 }
+
+func logCreateUser(logger *slog.Logger) func(CreateUserResult) IO.IO[F.Void] {
+	return func(result CreateUserResult) IO.IO[F.Void] {
+		return func() F.Void {
+			logCreateUserOutcome(logger, result)
+			return F.VOID
+		}
+	}
+}
+
+func logCreateDatabase(logger *slog.Logger) func(CreateDatabaseResult) IO.IO[F.Void] {
+	return func(result CreateDatabaseResult) IO.IO[F.Void] {
+		return func() F.Void {
+			logCreateDatabaseOutcome(logger, result)
+			return F.VOID
+		}
+	}
+}
+
+func logEnsureUser(logger *slog.Logger) func(EnsureUserResult) IO.IO[F.Void] {
+	return func(result EnsureUserResult) IO.IO[F.Void] {
+		return func() F.Void {
+			logEnsureUserOutcome(logger, result)
+			return F.VOID
+		}
+	}
+}
+
+func logEnsureDatabase(logger *slog.Logger) func(EnsureDatabaseResult) IO.IO[F.Void] {
+	return func(result EnsureDatabaseResult) IO.IO[F.Void] {
+		return func() F.Void {
+			logEnsureDatabaseOutcome(logger, result)
+			return F.VOID
+		}
+	}
+}
