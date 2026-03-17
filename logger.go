@@ -41,34 +41,6 @@ func parseLogLevel(levelStr string) slog.Level {
 	}
 }
 
-func logCreateUserOutcome(logger *slog.Logger, result CreateUserResult) {
-	logger.Info(
-		"user status",
-		"username",
-		F.Pipe2(result, P.Second, userName),
-		"status",
-		F.Pipe2(result, P.First, statusFromCreated),
-	)
-}
-
-func logCreateDatabaseOutcome(logger *slog.Logger, result CreateDatabaseResult) {
-	for _, dbResult := range result.Databases {
-		logger.Info(
-			"database status",
-			"database",
-			P.Second(dbResult),
-			"status",
-			F.Pipe2(dbResult, P.First, statusFromCreated),
-		)
-	}
-
-	if !result.HasUser {
-		return
-	}
-
-	logCreateUserOutcome(logger, result.User)
-}
-
 func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	logger.Info(
 		"user status",
@@ -111,31 +83,6 @@ func statusFromCreated(created bool) string {
 }
 
 func userName(u driver.User) string { return u.Name() }
-
-func logUserUpdated(logger *slog.Logger, username string) IO.IO[F.Void] {
-	return func() F.Void {
-		logger.Info("user status", "username", username, "status", "updated")
-		return F.VOID
-	}
-}
-
-func logCreateUser(logger *slog.Logger) func(CreateUserResult) IO.IO[F.Void] {
-	return func(result CreateUserResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logCreateUserOutcome(logger, result)
-			return F.VOID
-		}
-	}
-}
-
-func logCreateDatabase(logger *slog.Logger) func(CreateDatabaseResult) IO.IO[F.Void] {
-	return func(result CreateDatabaseResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logCreateDatabaseOutcome(logger, result)
-			return F.VOID
-		}
-	}
-}
 
 func logEnsureUser(logger *slog.Logger) func(EnsureUserResult) IO.IO[F.Void] {
 	return func(result EnsureUserResult) IO.IO[F.Void] {
