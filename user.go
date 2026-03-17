@@ -22,7 +22,8 @@ type UserForUpdate struct {
 
 // CreateUser adds a new user with pre-specified privileges to ArangoDB
 func CreateUser(_ context.Context, cmd *cli.Command) error {
-	output := F.Pipe6(
+	logger := newLogger(cmd)
+	return F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
@@ -34,23 +35,9 @@ func CreateUser(_ context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(createUserPipeline),
-		toEither,
-		E.Fold(
-			func(err error) P.Pair[CreateUserResult, error] {
-				var zero CreateUserResult
-				return P.MakePair(zero, err)
-			},
-			func(result CreateUserResult) P.Pair[CreateUserResult, error] {
-				return P.MakePair[CreateUserResult, error](result, nil)
-			},
-		),
+		IOE.ChainFirstIOK[error](logCreateUser(logger)),
+		foldIOE[CreateUserResult],
 	)
-	if err := P.Second(output); err != nil {
-		return err
-	}
-
-	logCreateUserOutcome(newLogger(cmd), P.First(output))
-	return nil
 }
 
 // createUserPipeline creates a user if they don't exist or returns the existing user.
@@ -235,7 +222,8 @@ type EnsureExistingUserPolicyInput struct {
 
 // EnsureUser adds a new user or updates an existing one based on the policy.
 func EnsureUser(ctx context.Context, cmd *cli.Command) error {
-	output := F.Pipe6(
+	logger := newLogger(cmd)
+	return F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		createArangoClient,
@@ -249,22 +237,9 @@ func EnsureUser(ctx context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(ensureUserPipeline),
-		toEither,
-		E.Fold(
-			func(err error) P.Pair[EnsureUserResult, error] {
-				var zero EnsureUserResult
-				return P.MakePair(zero, err)
-			},
-			func(result EnsureUserResult) P.Pair[EnsureUserResult, error] {
-				return P.MakePair[EnsureUserResult, error](result, nil)
-			},
-		),
+		IOE.ChainFirstIOK[error](logEnsureUser(logger)),
+		foldIOE[EnsureUserResult],
 	)
-	if err := P.Second(output); err != nil {
-		return err
-	}
-	logEnsureUserOutcome(newLogger(cmd), P.First(output))
-	return nil
 }
 
 func ensureUserPipeline(params EnsureUserParams) IOE.IOEither[error, EnsureUserResult] {
