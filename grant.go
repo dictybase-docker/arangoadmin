@@ -40,7 +40,6 @@ func EnsureGrant(_ context.Context, cmd *cli.Command) error {
 		IOE.Map[error](func(client driver.Client) EnsureGrantParams {
 			return EnsureGrantParams{
 				Client:   client,
-				Logger:   newLogger(cmd),
 				Username: cmd.String("user"),
 				Database: cmd.String("database"),
 				Grant:    cmd.String("grant"),
