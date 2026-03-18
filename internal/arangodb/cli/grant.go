@@ -13,6 +13,11 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var (
+	ensureGrantError   = F.Bind1st(P.MakePair[arangodb.EnsureGrantResult, error], arangodb.EnsureGrantResult{})
+	ensureGrantSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureGrantResult, error], (error)(nil))
+)
+
 // EnsureGrantCommand returns the CLI command definition for ensure-grant.
 func EnsureGrantCommand() *cli.Command {
 	return &cli.Command{
@@ -70,15 +75,7 @@ func EnsureGrant(ctx context.Context, cmd *cli.Command) error {
 		}),
 		IOE.Chain(arangodb.EnsureGrantPipeline),
 		arangodb.ToEither[error, arangodb.EnsureGrantResult],
-		E.Fold(
-			func(err error) P.Pair[arangodb.EnsureGrantResult, error] {
-				var zero arangodb.EnsureGrantResult
-				return P.MakePair(zero, err)
-			},
-			func(result arangodb.EnsureGrantResult) P.Pair[arangodb.EnsureGrantResult, error] {
-				return P.MakePair[arangodb.EnsureGrantResult, error](result, nil)
-			},
-		),
+		E.Fold(ensureGrantError, ensureGrantSuccess),
 	)
 	if err := P.Second(output); err != nil {
 		return err
