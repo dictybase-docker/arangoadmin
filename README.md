@@ -1,105 +1,194 @@
 # arangoadmin
 
-## Command line
+CLI for managing databases and users in ArangoDB.
 
-```
-NAME:
-   arangoadmin - cli for creating databases and users in arangodb
+## Table of Contents
 
-USAGE:
-   arangoadmin [global options] command [command options] [arguments...]
+- [Build & Run](#build--run)
+  - [From Source](#from-source)
+  - [Docker (local build)](#docker-local-build)
+  - [Docker (pre-built image)](#docker-pre-built-image)
+- [Global Options](#global-options)
+- [Subcommands](#subcommands)
+  - [ensure-user](#ensure-user)
+  - [ensure-database](#ensure-database)
+  - [ensure-grant](#ensure-grant)
+- [Quick Reference](#quick-reference)
 
-VERSION:
-   1.0.0
+## Build & Run
 
-COMMANDS:
-     create-database  create a new arangodb database
-     create-user      create a new user for accessing arangodb
-     update-user      update an existing user's password for accessing arangodb
-     ensure-user      create or update a user for accessing arangodb
-     ensure-database  create a single arangodb database if missing
-     help, h          Shows a list of commands or help for one command
+### From Source
 
-GLOBAL OPTIONS:
-   --host value        arangodb host address (default: "arangodb") [$ARANGODB_SERVICE_HOST]
-   --port value        arangodb port (default: "8529") [$ARANGODB_SERVICE_PORT]
-   --log-level value   log level for the application (default: "info")
-   --log-format value  format of the logging out, either of json or text (default: "json")
-   --is-secure         connect through a secure endpoint
-   --help, -h          show help
-   --version, -v       print the version
+Requires Go 1.24+.
+
+```sh
+git clone https://github.com/dictybase-docker/arangoadmin.git
+cd arangoadmin
+go build -o arangoadmin ./cmd/arangoadmin/
+./arangoadmin [global options] <subcommand> [options]
 ```
 
-### Subcommands
+### Docker (local build)
 
-```
-NAME:
-   arangoadmin create-database - create a new arangodb database
-
-USAGE:
-   arangoadmin create-database [command options] [arguments...]
-
-OPTIONS:
-   --admin-user value, --au value      arangodb admin user
-   --admin-password value, --ap value  arangodb admin password
-   --database value, --db value        name of arangodb database
-   --user value, -u value              arangodb user
-   --password value, --pw value        arangodb password for new user
-   --grant value, -g value             level of access for arangodb user, could be one of ro,rw or none (default: "rw")
+```sh
+docker build -t arangoadmin .
+docker run --rm arangoadmin <subcommand> [options]
 ```
 
-```
-NAME:
-   arangoadmin create-user - create a new user for accessing arangodb
+The container entrypoint is the binary — pass the subcommand directly after the image name:
 
-USAGE:
-   arangoadmin create-user [command options] [arguments...]
-
-OPTIONS:
-   --admin-user value, --au value      arangodb admin user (default: "root")
-   --admin-password value, --ap value  arangodb admin password
-   --user value, -u value              arangodb user
-   --password value, --pw value        arangodb password for new user
+```sh
+docker run --rm arangoadmin ensure-user \
+  --user myuser \
+  --password secret \
+  --host arangodb.internal
 ```
 
-```
-NAME:
-   arangoadmin update-user - update an existing user's password for accessing arangodb
+For multi-arch builds:
 
-USAGE:
-   arangoadmin update-user [command options] [arguments...]
-
-OPTIONS:
-   --admin-user value, --au value      arangodb admin user (default: "root")
-   --admin-password value, --ap value  arangodb admin password
-   --user value, -u value              arangodb user
-   --password value, --pw value        new arangodb password for the user
+```sh
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t arangoadmin .
 ```
 
-```
-NAME:
-   arangoadmin ensure-user - create or update a user for accessing arangodb
+### Docker (pre-built image)
 
-USAGE:
-   arangoadmin ensure-user [command options] [arguments...]
-
-OPTIONS:
-   --admin-user value, --au value      arangodb admin user (default: "root")
-   --admin-password value, --ap value  arangodb admin password
-   --user value, -u value              arangodb user
-   --password value, --pw value        arangodb password for user
-   --password-policy value             policy for updating password (never, if-provided, always) (default: "never")
+```sh
+docker pull ghcr.io/dictybase-docker/arangoadmin:latest
+docker run --rm ghcr.io/dictybase-docker/arangoadmin:latest <subcommand> [options]
 ```
 
-```
-NAME:
-   arangoadmin ensure-database - create a single arangodb database if missing
+## Global Options
 
-USAGE:
-   arangoadmin ensure-database [command options] [arguments...]
+These apply to all subcommands.
 
-OPTIONS:
-   --admin-user value, --au value      arangodb admin user (default: "root")
-   --admin-password value, --ap value  arangodb admin password
-   --database value, --db value        name of arangodb database
+| Flag | Default | Env var | Description |
+|---|---|---|---|
+| `--host` | `arangodb` | `$ARANGODB_SERVICE_HOST` | ArangoDB host address |
+| `--port` | `8529` | `$ARANGODB_SERVICE_PORT` | ArangoDB port |
+| `--log-level` | `info` | — | Log level (`debug`, `info`, `warn`, `error`) |
+| `--log-format` | `json` | — | Log format (`json` or `text`) |
+| `--is-secure` | false | — | Connect via TLS |
+
+## Subcommands
+
+### ensure-user
+
+Create a user if it does not exist, or update the user's password according to the configured policy.
+
 ```
+arangoadmin ensure-user [options]
+```
+
+| Flag | Short | Required | Default | Description |
+|---|---|---|---|---|
+| `--user` | `-u` | yes | — | ArangoDB username |
+| `--password` | `--pw` | yes | — | Password for the user |
+| `--admin-user` | `--au` | no | `root` | Admin user for authentication |
+| `--admin-password` | `--ap` | no | — | Admin password |
+| `--password-policy` | — | no | `never` | When to update the password: `never` (set on creation only), `if-provided` (update when a non-empty value is given), `always` (overwrite on every run) |
+
+**Binary:**
+
+```sh
+./arangoadmin ensure-user \
+  --host localhost \
+  --user myuser \
+  --password secret \
+  --admin-password adminpass \
+  --password-policy if-provided
+```
+
+**Docker:**
+
+```sh
+docker run --rm arangoadmin ensure-user \
+  --host localhost \
+  --user myuser \
+  --password secret \
+  --admin-password adminpass \
+  --password-policy if-provided
+```
+
+---
+
+### ensure-database
+
+Create a database if it does not exist. No-op if the database is already present.
+
+```
+arangoadmin ensure-database [options]
+```
+
+| Flag | Short | Required | Default | Description |
+|---|---|---|---|---|
+| `--database` | `--db` | yes | — | Database name |
+| `--admin-user` | `--au` | no | `root` | Admin user for authentication |
+| `--admin-password` | `--ap` | no | — | Admin password |
+
+**Binary:**
+
+```sh
+./arangoadmin ensure-database \
+  --host localhost \
+  --database mydb \
+  --admin-password adminpass
+```
+
+**Docker:**
+
+```sh
+docker run --rm arangoadmin ensure-database \
+  --host localhost \
+  --database mydb \
+  --admin-password adminpass
+```
+
+---
+
+### ensure-grant
+
+Set a user's access level on a database, creating the grant if it does not exist or updating it if it differs.
+
+```
+arangoadmin ensure-grant [options]
+```
+
+| Flag | Short | Required | Default | Description |
+|---|---|---|---|---|
+| `--user` | `-u` | yes | — | ArangoDB username |
+| `--database` | `--db` | yes | — | Database name |
+| `--admin-user` | `--au` | no | `root` | Admin user for authentication |
+| `--admin-password` | `--ap` | no | — | Admin password |
+| `--grant` | `-g` | no | `rw` | Access level: `rw` (read-write), `ro` (read-only), `none` |
+
+**Binary:**
+
+```sh
+./arangoadmin ensure-grant \
+  --host localhost \
+  --user myuser \
+  --database mydb \
+  --grant ro \
+  --admin-password adminpass
+```
+
+**Docker:**
+
+```sh
+docker run --rm arangoadmin ensure-grant \
+  --host localhost \
+  --user myuser \
+  --database mydb \
+  --grant ro \
+  --admin-password adminpass
+```
+
+## Quick Reference
+
+| Command | Required flags | Optional flags | Purpose |
+|---|---|---|---|
+| `ensure-user` | `--user`, `--password` | `--admin-user`, `--admin-password`, `--password-policy` | Create or update a user |
+| `ensure-database` | `--database` | `--admin-user`, `--admin-password` | Create a database if missing |
+| `ensure-grant` | `--user`, `--database` | `--admin-user`, `--admin-password`, `--grant` | Set user access on a database |
