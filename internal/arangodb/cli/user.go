@@ -14,7 +14,10 @@ import (
 )
 
 var (
-	ensureUserError   = F.Bind1st(P.MakePair[arangodb.EnsureUserResult, error], arangodb.EnsureUserResult{})
+	ensureUserError = F.Bind1st(
+		P.MakePair[arangodb.EnsureUserResult, error],
+		arangodb.EnsureUserResult{},
+	)
 	ensureUserSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureUserResult, error], (error)(nil))
 )
 
