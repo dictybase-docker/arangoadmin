@@ -7,9 +7,9 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	P "github.com/IBM/fp-go/v2/pair"
+	driver "github.com/arangodb/go-driver"
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/dictybase-docker/arangoadmin/internal/logger"
-	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
 )
 

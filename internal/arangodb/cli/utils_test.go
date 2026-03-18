@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	driver "github.com/arangodb/go-driver"
+	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 )
 
 func getTestClient() (driver.Client, error) {
