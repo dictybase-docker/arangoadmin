@@ -14,7 +14,12 @@ func LogEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	logger.Info(
 		"user status",
 		"username",
-		F.Pipe2(result, P.Second[EnsureUserStatus, driver.User], func(u driver.User) string { return u.Name() }),
+		F.Pipe2(
+			result,
+			P.Second[EnsureUserStatus, driver.User],
+			func(u driver.User) string {
+				return u.Name()
+			}),
 		"status",
 		F.Pipe1(result, P.First[EnsureUserStatus, driver.User]),
 	)

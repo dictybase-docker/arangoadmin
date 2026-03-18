@@ -13,6 +13,11 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var (
+	ensureDatabaseError   = F.Bind1st(P.MakePair[arangodb.EnsureDatabaseResult, error], arangodb.EnsureDatabaseResult{})
+	ensureDatabaseSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureDatabaseResult, error], (error)(nil))
+)
+
 // EnsureDatabaseCommand returns the CLI command definition for ensure-database.
 func EnsureDatabaseCommand() *cli.Command {
 	return &cli.Command{
@@ -56,15 +61,7 @@ func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
 		}),
 		IOE.Chain(arangodb.EnsureDatabasePipeline),
 		arangodb.ToEither[error, arangodb.EnsureDatabaseResult],
-		E.Fold(
-			func(err error) P.Pair[arangodb.EnsureDatabaseResult, error] {
-				var zero arangodb.EnsureDatabaseResult
-				return P.MakePair(zero, err)
-			},
-			func(result arangodb.EnsureDatabaseResult) P.Pair[arangodb.EnsureDatabaseResult, error] {
-				return P.MakePair[arangodb.EnsureDatabaseResult, error](result, nil)
-			},
-		),
+		E.Fold(ensureDatabaseError, ensureDatabaseSuccess),
 	)
 	if err := P.Second(output); err != nil {
 		return err

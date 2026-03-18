@@ -7,10 +7,15 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	P "github.com/IBM/fp-go/v2/pair"
+	driver "github.com/arangodb/go-driver"
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/dictybase-docker/arangoadmin/internal/logger"
-	driver "github.com/arangodb/go-driver"
 	"github.com/urfave/cli/v3"
+)
+
+var (
+	ensureUserError   = F.Bind1st(P.MakePair[arangodb.EnsureUserResult, error], arangodb.EnsureUserResult{})
+	ensureUserSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureUserResult, error], (error)(nil))
 )
 
 // EnsureUserCommand returns the CLI command definition for ensure-user.
@@ -69,19 +74,14 @@ func EnsureUser(ctx context.Context, cmd *cli.Command) error {
 		}),
 		IOE.Chain(arangodb.EnsureUserPipeline),
 		arangodb.ToEither[error, arangodb.EnsureUserResult],
-		E.Fold(
-			func(err error) P.Pair[arangodb.EnsureUserResult, error] {
-				var zero arangodb.EnsureUserResult
-				return P.MakePair(zero, err)
-			},
-			func(result arangodb.EnsureUserResult) P.Pair[arangodb.EnsureUserResult, error] {
-				return P.MakePair[arangodb.EnsureUserResult, error](result, nil)
-			},
-		),
+		E.Fold(ensureUserError, ensureUserSuccess),
 	)
 	if err := P.Second(output); err != nil {
 		return err
 	}
-	arangodb.LogEnsureUserOutcome(logger.NewLogger(cmd), P.First(output))
+	arangodb.LogEnsureUserOutcome(
+		logger.NewLogger(cmd),
+		P.First(output),
+	)
 	return nil
 }
