@@ -13,11 +13,12 @@ WORKDIR /arangoadmin
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY *.go ./
+COPY . .
 
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
 	-ldflags "-s -w" \
-	-o /bin/app
+	-o /bin/app \
+	./cmd/arangoadmin/
 
 RUN upx -q -9 /bin/app
 
