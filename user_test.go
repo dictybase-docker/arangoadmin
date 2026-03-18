@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
@@ -139,27 +136,6 @@ func TestGetGrant(t *testing.T) {
 	assert.Equal(driver.GrantNone, getGrant("invalid"))
 }
 
-func TestCreateUserAuthFailure(t *testing.T) {
-	require := require.New(t)
-	cmd := &cli.Command{
-		Flags: globalFlags(),
-		Commands: []*cli.Command{
-			createUserCommand(),
-		},
-	}
-	args := []string{
-		"arangoadmin",
-		"--host", arangoHost,
-		"--port", arangoPort,
-		"create-user",
-		"--admin-password", "wrong-password",
-		"--user", "failuser",
-		"--password", "failpass",
-	}
-	err := cmd.Run(context.Background(), args)
-	require.Error(err)
-	require.Contains(err.Error(), "not authorized")
-}
 
 func TestEnsureUserAuthFailure(t *testing.T) {
 	require := require.New(t)
@@ -188,14 +164,14 @@ func TestConnectionFailure(t *testing.T) {
 	cmd := &cli.Command{
 		Flags: globalFlags(),
 		Commands: []*cli.Command{
-			createUserCommand(),
+			ensureUserCommand(),
 		},
 	}
 	args := []string{
 		"arangoadmin",
 		"--host", "nonexistent-host",
 		"--port", "8529",
-		"create-user",
+		"ensure-user",
 		"--admin-password", arangoPassword,
 		"--user", "failuser",
 		"--password", "failpass",

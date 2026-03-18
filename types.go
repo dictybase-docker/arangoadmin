@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log/slog"
 
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
@@ -19,19 +18,6 @@ type ConnectionParams struct {
 type WithConnection struct {
 	ConnectionParams
 	Conn driver.Connection
-}
-
-// WithClient enriches connection params with an ArangoDB client and logger.
-type WithClient struct {
-	ConnectionParams
-	Client driver.Client
-	Logger *slog.Logger
-}
-
-// UserParams contains CLI-provided user values plus client dependencies.
-type UserParams struct {
-	WithClient
-	Username, Password string
 }
 
 // CreateUserResult carries whether the user was newly created and the user itself.
