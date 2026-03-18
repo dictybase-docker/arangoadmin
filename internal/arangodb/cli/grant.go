@@ -83,6 +83,6 @@ func EnsureGrant(ctx context.Context, cmd *cli.Command) error {
 	if err := P.Second(output); err != nil {
 		return err
 	}
-	arangodb.LogEnsureGrant(logger.NewLogger(cmd))(P.First(output))()
+	arangodb.LogEnsureGrantOutcome(logger.NewLogger(cmd), P.First(output))
 	return nil
 }

@@ -4,13 +4,13 @@ import (
 	"log/slog"
 
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
 )
 
-func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
+// LogEnsureUserOutcome logs the result of the ensure-user command.
+func LogEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	logger.Info(
 		"user status",
 		"username",
@@ -20,7 +20,17 @@ func logEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 	)
 }
 
-func logEnsureGrantOutcome(logger *slog.Logger, result EnsureGrantResult) {
+// LogEnsureDatabaseOutcome logs the result of the ensure-database command.
+func LogEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) {
+	logger.Info(
+		"database status",
+		"database", P.Second(result),
+		"status", F.Pipe2(result, P.First, statusFromCreated),
+	)
+}
+
+// LogEnsureGrantOutcome logs the result of the ensure-grant command.
+func LogEnsureGrantOutcome(logger *slog.Logger, result EnsureGrantResult) {
 	logger.Info(
 		"grant status",
 		"database",
@@ -28,40 +38,6 @@ func logEnsureGrantOutcome(logger *slog.Logger, result EnsureGrantResult) {
 		"grant",
 		P.Second(result),
 	)
-}
-
-// LogEnsureUser returns an IOK action that logs the ensure-user result.
-func LogEnsureUser(logger *slog.Logger) func(EnsureUserResult) IO.IO[F.Void] {
-	return func(result EnsureUserResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logEnsureUserOutcome(logger, result)
-			return F.VOID
-		}
-	}
-}
-
-// LogEnsureDatabase returns an IOK action that logs the ensure-database result.
-func LogEnsureDatabase(logger *slog.Logger) func(EnsureDatabaseResult) IO.IO[F.Void] {
-	return func(result EnsureDatabaseResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logger.Info(
-				"database status",
-				"database", P.Second(result),
-				"created", F.Pipe2(result, P.First, statusFromCreated),
-			)
-			return F.VOID
-		}
-	}
-}
-
-// LogEnsureGrant returns an IOK action that logs the ensure-grant result.
-func LogEnsureGrant(logger *slog.Logger) func(EnsureGrantResult) IO.IO[F.Void] {
-	return func(result EnsureGrantResult) IO.IO[F.Void] {
-		return func() F.Void {
-			logEnsureGrantOutcome(logger, result)
-			return F.VOID
-		}
-	}
 }
 
 func statusFromCreated(created bool) string {
