@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"context"
@@ -13,9 +13,9 @@ func TestEnsureDatabase(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := &cli.Command{
-		Flags: globalFlags(),
+		Flags: GlobalFlags(),
 		Commands: []*cli.Command{
-			ensureDatabaseCommand(),
+			EnsureDatabaseCommand(),
 		},
 	}
 
@@ -52,9 +52,9 @@ func TestEnsureDatabaseError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := &cli.Command{
-		Flags: globalFlags(),
+		Flags: GlobalFlags(),
 		Commands: []*cli.Command{
-			ensureDatabaseCommand(),
+			EnsureDatabaseCommand(),
 		},
 	}
 
@@ -70,5 +70,3 @@ func TestEnsureDatabaseError(t *testing.T) {
 	err := cmd.Run(ctx, args)
 	assert.Error(err, "should fail with invalid connection params")
 }
-
-
