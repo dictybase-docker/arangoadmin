@@ -14,7 +14,11 @@ type errorUser struct {
 	testUser
 }
 
-func (u errorUser) SetDatabaseAccess(_ context.Context, _ driver.Database, _ driver.Grant) error {
+func (u errorUser) SetDatabaseAccess(
+	_ context.Context,
+	_ driver.Database,
+	_ driver.Grant,
+) error {
 	return fmt.Errorf("forced error")
 }
 
@@ -31,7 +35,10 @@ func TestApplyGrantFailure(t *testing.T) {
 	result := ToEither(ApplyGrant(state))
 	assert.True(E.IsLeft(result))
 	_, err := E.UnwrapError(result)
-	assert.Contains(err.Error(), "error granting access to database test-db")
+	assert.Contains(
+		err.Error(),
+		"error granting access to database test-db",
+	)
 	assert.Contains(err.Error(), "forced error")
 }
 

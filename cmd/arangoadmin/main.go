@@ -22,7 +22,10 @@ func main() {
 			arangocli.EnsureGrantCommand(),
 		},
 	}
-	if err := cmd.Run(context.Background(), os.Args); err != nil {
+	if err := cmd.Run(
+		context.Background(),
+		os.Args,
+	); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

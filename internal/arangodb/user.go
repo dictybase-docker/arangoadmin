@@ -18,18 +18,24 @@ type EnsureExistingUserPolicyInput struct {
 }
 
 // EnsureUserPipeline adds a new user or updates an existing one based on the policy.
-func EnsureUserPipeline(params EnsureUserParams) IOE.IOEither[error, EnsureUserResult] {
+func EnsureUserPipeline(
+	params EnsureUserParams,
+) IOE.IOEither[error, EnsureUserResult] {
 	return F.Pipe3(
 		params,
 		checkUserExistenceForEnsure,
-		IOE.Map[error](func(exists bool) P.Pair[bool, EnsureUserParams] {
-			return P.MakePair(exists, params)
-		}),
+		IOE.Map[error](
+			func(exists bool) P.Pair[bool, EnsureUserParams] {
+				return P.MakePair(exists, params)
+			},
+		),
 		IOE.Chain(routeEnsureUser),
 	)
 }
 
-func checkUserExistenceForEnsure(params EnsureUserParams) IOE.IOEither[error, bool] {
+func checkUserExistenceForEnsure(
+	params EnsureUserParams,
+) IOE.IOEither[error, bool] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (bool, error) {
 			return params.Client.UserExists(
@@ -38,7 +44,10 @@ func checkUserExistenceForEnsure(params EnsureUserParams) IOE.IOEither[error, bo
 			)
 		}),
 		IOE.MapLeft[bool](fperrors.OnError(
-			fmt.Sprintf("error checking for user %s", params.Username),
+			fmt.Sprintf(
+				"error checking for user %s",
+				params.Username,
+			),
 		)),
 	)
 }
@@ -83,17 +92,21 @@ func ensureExistingUserFlow(
 	return F.Pipe3(
 		P.Second(params),
 		fetchExistingEnsureUser,
-		IOE.Map[error](func(user driver.User) EnsureExistingUserPolicyInput {
-			return EnsureExistingUserPolicyInput{
-				Params: P.Second(params),
-				User:   user,
-			}
-		}),
+		IOE.Map[error](
+			func(user driver.User) EnsureExistingUserPolicyInput {
+				return EnsureExistingUserPolicyInput{
+					Params: P.Second(params),
+					User:   user,
+				}
+			},
+		),
 		IOE.Chain(applyExistingUserPolicy),
 	)
 }
 
-func fetchExistingEnsureUser(p EnsureUserParams) IOE.IOEither[error, driver.User] {
+func fetchExistingEnsureUser(
+	p EnsureUserParams,
+) IOE.IOEither[error, driver.User] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (driver.User, error) {
 			return p.Client.User(p.Context, p.Username)

@@ -16,9 +16,11 @@ func EnsureDatabasePipeline(
 	return F.Pipe3(
 		params,
 		checkDatabaseExistenceForEnsure,
-		IOE.Map[error](func(exists bool) P.Pair[bool, EnsureDatabaseParams] {
-			return P.MakePair(exists, params)
-		}),
+		IOE.Map[error](
+			func(exists bool) P.Pair[bool, EnsureDatabaseParams] {
+				return P.MakePair(exists, params)
+			},
+		),
 		IOE.Chain(routeEnsureDatabase),
 	)
 }
@@ -34,7 +36,10 @@ func checkDatabaseExistenceForEnsure(
 			)
 		}),
 		IOE.MapLeft[bool](fperrors.OnError(
-			fmt.Sprintf("error checking for database %s", params.Database),
+			fmt.Sprintf(
+				"error checking for database %s",
+				params.Database,
+			),
 		)),
 	)
 }
@@ -65,11 +70,18 @@ func handleNewDatabase(
 	p := P.Second(params)
 	return F.Pipe1(
 		IOE.TryCatchError(func() (EnsureDatabaseResult, error) {
-			_, err := p.Client.CreateDatabase(p.Context, p.Database, nil)
+			_, err := p.Client.CreateDatabase(
+				p.Context,
+				p.Database,
+				nil,
+			)
 			return P.MakePair(true, p.Database), err
 		}),
 		IOE.MapLeft[EnsureDatabaseResult](fperrors.OnError(
-			fmt.Sprintf("error creating database %s", p.Database),
+			fmt.Sprintf(
+				"error creating database %s",
+				p.Database,
+			),
 		)),
 	)
 }

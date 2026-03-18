@@ -68,5 +68,8 @@ func TestEnsureDatabaseError(t *testing.T) {
 	}
 
 	err := cmd.Run(ctx, args)
-	assert.Error(err, "should fail with invalid connection params")
+	assert.Error(
+		err,
+		"should fail with invalid connection params",
+	)
 }

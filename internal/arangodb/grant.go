@@ -29,7 +29,9 @@ var (
 )
 
 // EnsureGrantPipeline ensures one user has one grant level on one database.
-func EnsureGrantPipeline(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantResult] {
+func EnsureGrantPipeline(
+	p EnsureGrantParams,
+) IOE.IOEither[error, EnsureGrantResult] {
 	return F.Pipe4(
 		p,
 		validateGrantParams,
@@ -39,7 +41,9 @@ func EnsureGrantPipeline(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantRes
 	)
 }
 
-func validateGrantParams(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantParams] {
+func validateGrantParams(
+	p EnsureGrantParams,
+) IOE.IOEither[error, EnsureGrantParams] {
 	return F.Pipe3(
 		p,
 		O.FromPredicate(nonEmptyUsername),
@@ -55,7 +59,9 @@ func validateGrantParams(p EnsureGrantParams) IOE.IOEither[error, EnsureGrantPar
 	)
 }
 
-func fetchGrantUser(p EnsureGrantParams) IOE.IOEither[error, GrantState] {
+func fetchGrantUser(
+	p EnsureGrantParams,
+) IOE.IOEither[error, GrantState] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.User, error) {
 			return p.Client.User(p.Context, p.Username)
@@ -69,13 +75,21 @@ func fetchGrantUser(p EnsureGrantParams) IOE.IOEither[error, GrantState] {
 	)
 }
 
-func fetchGrantDatabase(s GrantState) IOE.IOEither[error, GrantState] {
+func fetchGrantDatabase(
+	s GrantState,
+) IOE.IOEither[error, GrantState] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (driver.Database, error) {
-			return s.Params.Client.Database(s.Params.Context, s.Params.Database)
+			return s.Params.Client.Database(
+				s.Params.Context,
+				s.Params.Database,
+			)
 		}),
 		IOE.MapLeft[driver.Database](fperrors.OnError(
-			fmt.Sprintf("error fetching database %s", s.Params.Database),
+			fmt.Sprintf(
+				"error fetching database %s",
+				s.Params.Database,
+			),
 		)),
 		IOE.Map[error](func(db driver.Database) GrantState {
 			s.DB = db
@@ -85,7 +99,9 @@ func fetchGrantDatabase(s GrantState) IOE.IOEither[error, GrantState] {
 }
 
 // ApplyGrant applies the grant level from GrantState to the database.
-func ApplyGrant(s GrantState) IOE.IOEither[error, EnsureGrantResult] {
+func ApplyGrant(
+	s GrantState,
+) IOE.IOEither[error, EnsureGrantResult] {
 	return F.Pipe2(
 		IOE.TryCatchError(func() (F.Void, error) {
 			return F.VOID, s.User.SetDatabaseAccess(
@@ -95,7 +111,10 @@ func ApplyGrant(s GrantState) IOE.IOEither[error, EnsureGrantResult] {
 			)
 		}),
 		IOE.MapLeft[F.Void](fperrors.OnError(
-			fmt.Sprintf("error granting access to database %s", s.Params.Database),
+			fmt.Sprintf(
+				"error granting access to database %s",
+				s.Params.Database,
+			),
 		)),
 		IOE.Map[error](func(_ F.Void) EnsureGrantResult {
 			return P.MakePair(s.Params.Database, s.Params.Grant)

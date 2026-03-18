@@ -19,7 +19,10 @@ var (
 		P.MakePair[arangodb.EnsureGrantResult, error],
 		arangodb.EnsureGrantResult{},
 	)
-	ensureGrantSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureGrantResult, error], (error)(nil))
+	ensureGrantSuccess = F.Bind2nd(
+		P.MakePair[arangodb.EnsureGrantResult, error],
+		(error)(nil),
+	)
 )
 
 // EnsureGrantCommand returns the CLI command definition for ensure-grant.
@@ -68,15 +71,17 @@ func EnsureGrant(ctx context.Context, cmd *cli.Command) error {
 		cmd,
 		connParamsFromCmd,
 		arangodb.CreateArangoClient,
-		IOE.Map[error](func(client driver.Client) arangodb.EnsureGrantParams {
-			return arangodb.EnsureGrantParams{
-				Context:  ctx,
-				Client:   client,
-				Username: cmd.String("user"),
-				Database: cmd.String("database"),
-				Grant:    cmd.String("grant"),
-			}
-		}),
+		IOE.Map[error](
+			func(client driver.Client) arangodb.EnsureGrantParams {
+				return arangodb.EnsureGrantParams{
+					Context:  ctx,
+					Client:   client,
+					Username: cmd.String("user"),
+					Database: cmd.String("database"),
+					Grant:    cmd.String("grant"),
+				}
+			},
+		),
 		IOE.Chain(arangodb.EnsureGrantPipeline),
 		arangodb.ToEither[error, arangodb.EnsureGrantResult],
 		E.Fold(ensureGrantError, ensureGrantSuccess),
@@ -84,6 +89,9 @@ func EnsureGrant(ctx context.Context, cmd *cli.Command) error {
 	if err := P.Second(output); err != nil {
 		return err
 	}
-	arangodb.LogEnsureGrantOutcome(logger.NewLogger(cmd), P.First(output))
+	arangodb.LogEnsureGrantOutcome(
+		logger.NewLogger(cmd),
+		P.First(output),
+	)
 	return nil
 }
