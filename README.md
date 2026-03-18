@@ -6,8 +6,7 @@ CLI for managing databases and users in ArangoDB.
 
 - [Build & Run](#build--run)
   - [From Source](#from-source)
-  - [Docker (local build)](#docker-local-build)
-  - [Docker (pre-built image)](#docker-pre-built-image)
+  - [Docker](#docker)
 - [Global Options](#global-options)
 - [Subcommands](#subcommands)
   - [ensure-user](#ensure-user)
@@ -28,7 +27,7 @@ go build -o arangoadmin ./cmd/arangoadmin/
 ./arangoadmin [global options] <subcommand> [options]
 ```
 
-### Docker (local build)
+### Docker
 
 ```sh
 docker build -t arangoadmin .
@@ -52,12 +51,6 @@ docker buildx build \
   -t arangoadmin .
 ```
 
-### Docker (pre-built image)
-
-```sh
-docker pull ghcr.io/dictybase-docker/arangoadmin:latest
-docker run --rm ghcr.io/dictybase-docker/arangoadmin:latest <subcommand> [options]
-```
 
 ## Global Options
 
