@@ -8,13 +8,17 @@ import (
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
+	"github.com/urfave/cli/v3"
+
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/dictybase-docker/arangoadmin/internal/logger"
-	"github.com/urfave/cli/v3"
 )
 
 var (
-	ensureGrantError   = F.Bind1st(P.MakePair[arangodb.EnsureGrantResult, error], arangodb.EnsureGrantResult{})
+	ensureGrantError = F.Bind1st(
+		P.MakePair[arangodb.EnsureGrantResult, error],
+		arangodb.EnsureGrantResult{},
+	)
 	ensureGrantSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureGrantResult, error], (error)(nil))
 )
 

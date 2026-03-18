@@ -57,3 +57,19 @@ linters:
   # - gochecknoglobals
   # - golint
   # - gochecknoinits
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+    - golines
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/dictybase-docker/arangoadmin)
+    golines:
+      max-len: 100

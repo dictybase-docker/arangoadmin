@@ -20,7 +20,11 @@ const arangoPassword = "password"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
-	arangoContainer, err := arangodb.Run(ctx, "arangodb:3.11.6", arangodb.WithRootPassword(arangoPassword))
+	arangoContainer, err := arangodb.Run(
+		ctx,
+		"arangodb:3.11.6",
+		arangodb.WithRootPassword(arangoPassword),
+	)
 	if err != nil {
 		log.Fatalf("failed to start container: %s", err)
 	}

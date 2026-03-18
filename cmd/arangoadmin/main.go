@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	arangocli "github.com/dictybase-docker/arangoadmin/internal/arangodb/cli"
 	"github.com/urfave/cli/v3"
+
+	arangocli "github.com/dictybase-docker/arangoadmin/internal/arangodb/cli"
 )
 
 func main() {
