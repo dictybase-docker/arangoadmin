@@ -1,4 +1,4 @@
-package main
+package arangodb
 
 import (
 	"testing"
@@ -16,13 +16,12 @@ func TestCreateArangoClientSuccess(t *testing.T) {
 		Pass:     arangoPassword,
 		IsSecure: false,
 	}
-	result := toEither(createArangoClient(params))
+	result := ToEither(CreateArangoClient(params))
 	require.True(E.IsRight(result))
 }
 
 func TestCreateArangoClientReturnsClient(t *testing.T) {
 	require := require.New(t)
-	// Test that the pipeline returns a non-nil client
 	params := ConnectionParams{
 		Host:     arangoHost,
 		Port:     arangoPort,
@@ -30,9 +29,8 @@ func TestCreateArangoClientReturnsClient(t *testing.T) {
 		Pass:     arangoPassword,
 		IsSecure: false,
 	}
-	result := toEither(createArangoClient(params))
+	result := ToEither(CreateArangoClient(params))
 	require.True(E.IsRight(result))
-	// Unwrap the client
 	client, err := E.UnwrapError(result)
 	require.NoError(err)
 	require.NotNil(client)
@@ -40,8 +38,7 @@ func TestCreateArangoClientReturnsClient(t *testing.T) {
 
 func TestCreateArangoClientBackwardCompat(t *testing.T) {
 	require := require.New(t)
-	// getClient wrapper must still work for existing tests
-	client, err := getClient(&ClientParams{
+	client, err := GetClient(&ClientParams{
 		Host:     arangoHost,
 		Port:     arangoPort,
 		User:     "root",
