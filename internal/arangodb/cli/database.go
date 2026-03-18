@@ -8,14 +8,21 @@ import (
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	P "github.com/IBM/fp-go/v2/pair"
 	driver "github.com/arangodb/go-driver"
+	"github.com/urfave/cli/v3"
+
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/dictybase-docker/arangoadmin/internal/logger"
-	"github.com/urfave/cli/v3"
 )
 
 var (
-	ensureDatabaseError   = F.Bind1st(P.MakePair[arangodb.EnsureDatabaseResult, error], arangodb.EnsureDatabaseResult{})
-	ensureDatabaseSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureDatabaseResult, error], (error)(nil))
+	ensureDatabaseError = F.Bind1st(
+		P.MakePair[arangodb.EnsureDatabaseResult, error],
+		arangodb.EnsureDatabaseResult{},
+	)
+	ensureDatabaseSuccess = F.Bind2nd(
+		P.MakePair[arangodb.EnsureDatabaseResult, error],
+		(error)(nil),
+	)
 )
 
 // EnsureDatabaseCommand returns the CLI command definition for ensure-database.

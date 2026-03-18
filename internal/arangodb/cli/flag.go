@@ -2,8 +2,9 @@
 package cli
 
 import (
-	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/urfave/cli/v3"
+
+	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 )
 
 // GlobalFlags returns the top-level flags shared by all commands.

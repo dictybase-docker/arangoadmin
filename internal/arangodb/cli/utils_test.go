@@ -2,6 +2,7 @@ package cli
 
 import (
 	driver "github.com/arangodb/go-driver"
+
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 )
 
