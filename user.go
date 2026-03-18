@@ -10,12 +10,8 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 	PR "github.com/IBM/fp-go/v2/predicate"
 	driver "github.com/arangodb/go-driver"
+	"github.com/urfave/cli/v3"
 )
-
-type UserForUpdate struct {
-	Params UserParams
-	User   driver.User
-}
 
 type EnsureExistingUserPolicyInput struct {
 	Params EnsureUserParams

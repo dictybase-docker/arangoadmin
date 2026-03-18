@@ -2,15 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"os"
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
-	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
 
@@ -77,27 +71,4 @@ func TestEnsureDatabaseError(t *testing.T) {
 	assert.Error(err, "should fail with invalid connection params")
 }
 
-type mockClient struct {
-	driver.Client
-	userExistsError error
-	userError       error
-	createUserError error
-	userExists      bool
-}
-
-func (m *mockClient) UserExists(_ context.Context, _ string) (bool, error) {
-	return m.userExists, m.userExistsError
-}
-
-func (m *mockClient) User(_ context.Context, _ string) (driver.User, error) {
-	return nil, m.userError
-}
-
-func (m *mockClient) CreateUser(_ context.Context, _ string, _ *driver.UserOptions) (driver.User, error) {
-	return nil, m.createUserError
-}
-
-func (m *mockClient) Database(_ context.Context, _ string) (driver.Database, error) {
-	return nil, nil // Not used for this test
-}
 
