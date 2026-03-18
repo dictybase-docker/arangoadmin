@@ -40,7 +40,9 @@ func GlobalFlags() []cli.Flag {
 }
 
 // connParamsFromCmd extracts connection parameters from CLI flags.
-func connParamsFromCmd(cmd *cli.Command) arangodb.ConnectionParams {
+func connParamsFromCmd(
+	cmd *cli.Command,
+) arangodb.ConnectionParams {
 	return arangodb.ConnectionParams{
 		Host:     cmd.String("host"),
 		Port:     cmd.String("port"),

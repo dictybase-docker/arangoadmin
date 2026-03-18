@@ -19,7 +19,10 @@ var (
 		P.MakePair[arangodb.EnsureUserResult, error],
 		arangodb.EnsureUserResult{},
 	)
-	ensureUserSuccess = F.Bind2nd(P.MakePair[arangodb.EnsureUserResult, error], (error)(nil))
+	ensureUserSuccess = F.Bind2nd(
+		P.MakePair[arangodb.EnsureUserResult, error],
+		(error)(nil),
+	)
 )
 
 // EnsureUserCommand returns the CLI command definition for ensure-user.
@@ -67,15 +70,17 @@ func EnsureUser(ctx context.Context, cmd *cli.Command) error {
 		cmd,
 		connParamsFromCmd,
 		arangodb.CreateArangoClient,
-		IOE.Map[error](func(client driver.Client) arangodb.EnsureUserParams {
-			return arangodb.EnsureUserParams{
-				Context:  ctx,
-				Client:   client,
-				Username: cmd.String("user"),
-				Password: cmd.String("password"),
-				Policy:   cmd.String("password-policy"),
-			}
-		}),
+		IOE.Map[error](
+			func(client driver.Client) arangodb.EnsureUserParams {
+				return arangodb.EnsureUserParams{
+					Context:  ctx,
+					Client:   client,
+					Username: cmd.String("user"),
+					Password: cmd.String("password"),
+					Policy:   cmd.String("password-policy"),
+				}
+			},
+		),
 		IOE.Chain(arangodb.EnsureUserPipeline),
 		arangodb.ToEither[error, arangodb.EnsureUserResult],
 		E.Fold(ensureUserError, ensureUserSuccess),

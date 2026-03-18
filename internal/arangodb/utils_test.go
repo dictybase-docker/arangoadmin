@@ -33,11 +33,23 @@ func (u testUser) Extra(_ interface{}) error { return nil }
 
 func (u testUser) Remove(_ context.Context) error { return nil }
 
-func (u testUser) Update(_ context.Context, _ driver.UserOptions) error { return nil }
+func (u testUser) Update(
+	_ context.Context,
+	_ driver.UserOptions,
+) error {
+	return nil
+}
 
-func (u testUser) Replace(_ context.Context, _ driver.UserOptions) error { return nil }
+func (u testUser) Replace(
+	_ context.Context,
+	_ driver.UserOptions,
+) error {
+	return nil
+}
 
-func (u testUser) AccessibleDatabases(_ context.Context) ([]driver.Database, error) {
+func (u testUser) AccessibleDatabases(
+	_ context.Context,
+) ([]driver.Database, error) {
 	return nil, nil
 }
 
@@ -56,7 +68,10 @@ func (u testUser) GetDatabaseAccess(
 	return driver.GrantNone, nil
 }
 
-func (u testUser) RemoveDatabaseAccess(_ context.Context, _ driver.Database) error {
+func (u testUser) RemoveDatabaseAccess(
+	_ context.Context,
+	_ driver.Database,
+) error {
 	return nil
 }
 
@@ -82,8 +97,16 @@ func (u testUser) RemoveCollectionAccess(
 	return nil
 }
 
-func (u testUser) GrantReadWriteAccess(_ context.Context, _ driver.Database) error {
+func (u testUser) GrantReadWriteAccess(
+	_ context.Context,
+	_ driver.Database,
+) error {
 	return nil
 }
 
-func (u testUser) RevokeAccess(_ context.Context, _ driver.Database) error { return nil }
+func (u testUser) RevokeAccess(
+	_ context.Context,
+	_ driver.Database,
+) error {
+	return nil
+}

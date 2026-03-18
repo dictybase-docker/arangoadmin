@@ -54,18 +54,23 @@ func EnsureDatabaseCommand() *cli.Command {
 }
 
 // EnsureDatabase is the CLI action for the ensure-database command.
-func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
+func EnsureDatabase(
+	ctx context.Context,
+	cmd *cli.Command,
+) error {
 	output := F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		arangodb.CreateArangoClient,
-		IOE.Map[error](func(client driver.Client) arangodb.EnsureDatabaseParams {
-			return arangodb.EnsureDatabaseParams{
-				Context:  ctx,
-				Client:   client,
-				Database: cmd.String("database"),
-			}
-		}),
+		IOE.Map[error](
+			func(client driver.Client) arangodb.EnsureDatabaseParams {
+				return arangodb.EnsureDatabaseParams{
+					Context:  ctx,
+					Client:   client,
+					Database: cmd.String("database"),
+				}
+			},
+		),
 		IOE.Chain(arangodb.EnsureDatabasePipeline),
 		arangodb.ToEither[error, arangodb.EnsureDatabaseResult],
 		E.Fold(ensureDatabaseError, ensureDatabaseSuccess),
@@ -73,6 +78,9 @@ func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
 	if err := P.Second(output); err != nil {
 		return err
 	}
-	arangodb.LogEnsureDatabaseOutcome(logger.NewLogger(cmd), P.First(output))
+	arangodb.LogEnsureDatabaseOutcome(
+		logger.NewLogger(cmd),
+		P.First(output),
+	)
 	return nil
 }

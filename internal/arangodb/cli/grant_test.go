@@ -31,7 +31,11 @@ func TestEnsureGrant(t *testing.T) {
 	_, err = client.CreateDatabase(ctx, dbName, nil)
 	assert.NoError(err)
 
-	_, err = client.CreateUser(ctx, userName, &driver.UserOptions{Password: "password"})
+	_, err = client.CreateUser(
+		ctx,
+		userName,
+		&driver.UserOptions{Password: "password"},
+	)
 	assert.NoError(err)
 
 	args := []string{
@@ -58,7 +62,11 @@ func TestEnsureGrant(t *testing.T) {
 
 	access, err := user.GetDatabaseAccess(ctx, db)
 	assert.NoError(err)
-	assert.Equal(driver.GrantReadOnly, access, "grant level should be read-only")
+	assert.Equal(
+		driver.GrantReadOnly,
+		access,
+		"grant level should be read-only",
+	)
 
 	// 3. Update grant level
 	grantLevel = "rw"
@@ -68,7 +76,11 @@ func TestEnsureGrant(t *testing.T) {
 
 	access, err = user.GetDatabaseAccess(ctx, db)
 	assert.NoError(err)
-	assert.Equal(driver.GrantReadWrite, access, "grant level should be read-write")
+	assert.Equal(
+		driver.GrantReadWrite,
+		access,
+		"grant level should be read-write",
+	)
 }
 
 func TestEnsureGrantInvalidLevel(t *testing.T) {
@@ -88,7 +100,11 @@ func TestEnsureGrantInvalidLevel(t *testing.T) {
 	client, err := getTestClient()
 	assert.NoError(err)
 	_, _ = client.CreateDatabase(ctx, dbName, nil)
-	_, _ = client.CreateUser(ctx, userName, &driver.UserOptions{Password: "password"})
+	_, _ = client.CreateUser(
+		ctx,
+		userName,
+		&driver.UserOptions{Password: "password"},
+	)
 
 	args := []string{
 		"arangoadmin",
@@ -102,12 +118,19 @@ func TestEnsureGrantInvalidLevel(t *testing.T) {
 	}
 
 	err = cmd.Run(ctx, args)
-	assert.NoError(err, "should not fail for invalid grant level, just apply 'none'")
+	assert.NoError(
+		err,
+		"should not fail for invalid grant level, just apply 'none'",
+	)
 
 	user, _ := client.User(ctx, userName)
 	db, _ := client.Database(ctx, dbName)
 	access, _ := user.GetDatabaseAccess(ctx, db)
-	assert.Equal(driver.GrantNone, access, "should default to GrantNone for invalid inputs")
+	assert.Equal(
+		driver.GrantNone,
+		access,
+		"should default to GrantNone for invalid inputs",
+	)
 }
 
 func TestEnsureGrantMissingUser(t *testing.T) {
@@ -133,7 +156,10 @@ func TestEnsureGrantMissingUser(t *testing.T) {
 
 	err := cmd.Run(ctx, args)
 	assert.Error(err, "should fail for missing user")
-	assert.Contains(err.Error(), "error fetching user non-existent-user")
+	assert.Contains(
+		err.Error(),
+		"error fetching user non-existent-user",
+	)
 }
 
 func TestEnsureGrantMissingDatabase(t *testing.T) {
@@ -151,7 +177,11 @@ func TestEnsureGrantMissingDatabase(t *testing.T) {
 	client, err := getTestClient()
 	assert.NoError(err)
 	userName := "grant-test-user-no-db"
-	_, err = client.CreateUser(ctx, userName, &driver.UserOptions{Password: "password"})
+	_, err = client.CreateUser(
+		ctx,
+		userName,
+		&driver.UserOptions{Password: "password"},
+	)
 	assert.NoError(err)
 
 	args := []string{
@@ -166,7 +196,10 @@ func TestEnsureGrantMissingDatabase(t *testing.T) {
 
 	err = cmd.Run(ctx, args)
 	assert.Error(err, "should fail for missing database")
-	assert.Contains(err.Error(), "error fetching database non-existent-db")
+	assert.Contains(
+		err.Error(),
+		"error fetching database non-existent-db",
+	)
 }
 
 func TestEnsureGrantEmptyInputs(t *testing.T) {

@@ -72,5 +72,5 @@ formatters:
         - default
         - prefix(github.com/dictybase-docker/arangoadmin)
     golines:
-      max-len: 80
+      max-len: 65
       chain-split-dots: true

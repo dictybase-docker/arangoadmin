@@ -15,9 +15,12 @@ func TestLogEnsureUserOutcome(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
-	result := P.MakePair[EnsureUserStatus, driver.User](UserCreated, testUser{
-		name: "ensure-user",
-	})
+	result := P.MakePair[EnsureUserStatus, driver.User](
+		UserCreated,
+		testUser{
+			name: "ensure-user",
+		},
+	)
 
 	LogEnsureUserOutcome(logger, result)
 	output := buf.String()

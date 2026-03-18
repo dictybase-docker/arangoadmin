@@ -35,12 +35,17 @@ func CreateConnection(
 }
 
 // newClientFromConn creates a driver client from a connection.
-func newClientFromConn(wc WithConnection) IOE.IOEither[error, driver.Client] {
+func newClientFromConn(
+	wc WithConnection,
+) IOE.IOEither[error, driver.Client] {
 	return F.Pipe1(
 		IOE.TryCatchError(func() (driver.Client, error) {
 			return driver.NewClient(driver.ClientConfig{
-				Connection:     wc.Conn,
-				Authentication: driver.BasicAuthentication(wc.User, wc.Pass),
+				Connection: wc.Conn,
+				Authentication: driver.BasicAuthentication(
+					wc.User,
+					wc.Pass,
+				),
 			})
 		}),
 		IOE.MapLeft[driver.Client](
@@ -59,12 +64,14 @@ func CreateArangoClient(
 		IOE.MapLeft[driver.Connection](
 			fperrors.OnError("could not connect"),
 		),
-		IOE.Map[error](func(conn driver.Connection) WithConnection {
-			return WithConnection{
-				ConnectionParams: params,
-				Conn:             conn,
-			}
-		}),
+		IOE.Map[error](
+			func(conn driver.Connection) WithConnection {
+				return WithConnection{
+					ConnectionParams: params,
+					Conn:             conn,
+				}
+			},
+		),
 		IOE.Chain(newClientFromConn),
 	)
 }
@@ -75,7 +82,9 @@ func GetClient(params *ClientParams) (driver.Client, error) {
 }
 
 // ToEither executes an IOEither and returns the Either result.
-func ToEither[ER, A any](ioe IOE.IOEither[ER, A]) E.Either[ER, A] {
+func ToEither[ER, A any](
+	ioe IOE.IOEither[ER, A],
+) E.Either[ER, A] {
 	return ioe()
 }
 

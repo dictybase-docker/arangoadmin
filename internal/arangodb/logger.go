@@ -10,7 +10,10 @@ import (
 )
 
 // LogEnsureUserOutcome logs the result of the ensure-user command.
-func LogEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
+func LogEnsureUserOutcome(
+	logger *slog.Logger,
+	result EnsureUserResult,
+) {
 	logger.Info(
 		"user status",
 		"username",
@@ -26,7 +29,10 @@ func LogEnsureUserOutcome(logger *slog.Logger, result EnsureUserResult) {
 }
 
 // LogEnsureDatabaseOutcome logs the result of the ensure-database command.
-func LogEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) {
+func LogEnsureDatabaseOutcome(
+	logger *slog.Logger,
+	result EnsureDatabaseResult,
+) {
 	logger.Info(
 		"database status",
 		"database", P.Second(result),
@@ -35,7 +41,10 @@ func LogEnsureDatabaseOutcome(logger *slog.Logger, result EnsureDatabaseResult) 
 }
 
 // LogEnsureGrantOutcome logs the result of the ensure-grant command.
-func LogEnsureGrantOutcome(logger *slog.Logger, result EnsureGrantResult) {
+func LogEnsureGrantOutcome(
+	logger *slog.Logger,
+	result EnsureGrantResult,
+) {
 	logger.Info(
 		"grant status",
 		"database",

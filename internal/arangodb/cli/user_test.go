@@ -97,7 +97,13 @@ func TestNewLogger(t *testing.T) {
 
 	levels := []string{"debug", "info", "warn", "error"}
 	for _, level := range levels {
-		args := []string{"arangoadmin", "--log-format", "text", "--log-level", level}
+		args := []string{
+			"arangoadmin",
+			"--log-format",
+			"text",
+			"--log-level",
+			level,
+		}
 		err := cmd.Run(ctx, args)
 		assert.NoError(err)
 	}
