@@ -19,7 +19,7 @@ func TestLogEnsureUserOutcome(t *testing.T) {
 		name: "ensure-user",
 	})
 
-	logEnsureUserOutcome(logger, result)
+	LogEnsureUserOutcome(logger, result)
 	output := buf.String()
 
 	require.Contains(output, "msg=\"user status\"")
@@ -33,7 +33,7 @@ func TestLogEnsureGrant(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
 	result := P.MakePair("grant-db", "ro")
-	logEnsureGrantOutcome(logger, result)
+	LogEnsureGrantOutcome(logger, result)
 
 	output := buf.String()
 	require.Contains(output, "msg=\"grant status\"")

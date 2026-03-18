@@ -3,8 +3,10 @@ package cli
 import (
 	"context"
 
+	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/dictybase-docker/arangoadmin/internal/arangodb"
 	"github.com/dictybase-docker/arangoadmin/internal/logger"
 	driver "github.com/arangodb/go-driver"
@@ -41,8 +43,7 @@ func EnsureDatabaseCommand() *cli.Command {
 
 // EnsureDatabase is the CLI action for the ensure-database command.
 func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
-	lgr := logger.NewLogger(cmd)
-	return F.Pipe6(
+	output := F.Pipe6(
 		cmd,
 		connParamsFromCmd,
 		arangodb.CreateArangoClient,
@@ -54,7 +55,20 @@ func EnsureDatabase(ctx context.Context, cmd *cli.Command) error {
 			}
 		}),
 		IOE.Chain(arangodb.EnsureDatabasePipeline),
-		IOE.ChainFirstIOK[error](arangodb.LogEnsureDatabase(lgr)),
-		arangodb.FoldIOE[arangodb.EnsureDatabaseResult],
+		arangodb.ToEither[error, arangodb.EnsureDatabaseResult],
+		E.Fold(
+			func(err error) P.Pair[arangodb.EnsureDatabaseResult, error] {
+				var zero arangodb.EnsureDatabaseResult
+				return P.MakePair(zero, err)
+			},
+			func(result arangodb.EnsureDatabaseResult) P.Pair[arangodb.EnsureDatabaseResult, error] {
+				return P.MakePair[arangodb.EnsureDatabaseResult, error](result, nil)
+			},
+		),
 	)
+	if err := P.Second(output); err != nil {
+		return err
+	}
+	arangodb.LogEnsureDatabaseOutcome(logger.NewLogger(cmd), P.First(output))
+	return nil
 }
