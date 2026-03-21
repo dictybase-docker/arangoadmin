@@ -3,7 +3,7 @@ module github.com/dictybase-docker/arangoadmin
 go 1.25.0
 
 require (
-	github.com/IBM/fp-go/v2 v2.1.27
+	github.com/IBM/fp-go/v2 v2.2.64
 	github.com/arangodb/go-driver v1.6.9
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go/modules/arangodb v0.41.0
